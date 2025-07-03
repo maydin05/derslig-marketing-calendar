@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Derslig 2025-26 Pazarlama Takvimi</title>
+  <title>Derslig 2025-26 Pazarlama Takvimi (Haftalık)</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com" defer></script>
   <!-- Google Font -->
@@ -11,13 +11,12 @@
   <style>
     body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
     .gantt-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    .gantt-grid { display: grid; min-width: 2220px; grid-template-columns: 300px repeat(12, 160px); }
+    .gantt-grid { display: grid; }
     .gantt-header, .gantt-row { display: contents; }
     .gantt-cell { border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; padding: .5rem; white-space: nowrap; }
     .gantt-initiative-cell { position: sticky; left: 0; background: #f8fafc; z-index: 10; border-right: 2px solid #cbd5e1; }
-    .gantt-month-header { position: sticky; top: 0; background: #f8fafc; z-index: 20; text-align: center; font-weight: 600; }
-    .gantt-bar { position: absolute; height: 28px; border-radius: .25rem; color: white; font-size: .75rem; line-height: 28px; padding: 0 .5rem; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; cursor: pointer; transition: transform .2s ease; }
-    .gantt-bar:hover { transform: scale(1.02); box-shadow: 0 4px 10px rgba(0,0,0,.2); }
+    .gantt-week-header { position: sticky; top: 0; background: #f8fafc; z-index: 20; text-align: center; font-weight: 600; }
+    .gantt-bar { position: absolute; height: 24px; border-radius: .25rem; color: white; font-size: .75rem; line-height: 24px; padding: 0 .5rem; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; cursor: pointer; }
     .persona-tag { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 9999px; font-size: .75rem; font-weight: 500; margin: 0 4px 4px 0; }
     .filter-btn.active { background-color: #2563eb; color: #fff; }
     #loader { text-align: center; padding: 4rem; font-size: 1.2rem; color: #475569; }
@@ -26,117 +25,111 @@
 <body class="p-4 sm:p-6 md:p-8">
   <div class="max-w-full mx-auto bg-white rounded-xl shadow-lg p-6">
     <header class="mb-6">
-      <h1 class="text-3xl font-bold text-gray-800">Derslig 2025-26 Pazarlama Takvimi</h1>
-      <p class="mt-1 text-gray-600">Stratejik hamleler, zaman çizelgesi ve hedeflenen personalar.</p>
+      <h1 class="text-2xl font-bold text-gray-800">Derslig 2025-26 Pazarlama Takvimi (Haftalık Görünüm)</h1>
+      <p class="mt-1 text-gray-600">Her ay 4 haftadan oluşan zaman çizelgesi.</p>
       <div class="mt-4 flex flex-wrap gap-2 items-center">
         <span class="font-semibold text-gray-700 mr-2">Filtrele:</span>
         <div id="persona-filters">
-          <button data-filter="all" class="filter-btn active px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded-full transition">Tümü</button>
-          <button data-filter="veli" class="filter-btn px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded-full transition">Veli</button>
-          <button data-filter="ogrenci" class="filter-btn px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded-full transition">Öğrenci</button>
-          <button data-filter="ogretmen" class="filter-btn px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded-full transition">Öğretmen</button>
-          <button data-filter="kurum" class="filter-btn px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded-full transition">Kurum</button>
+          <button data-filter="all" class="filter-btn active px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded-full">Tümü</button>
+          <button data-filter="veli" class="filter-btn px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded-full">Veli</button>
+          <button data-filter="ogrenci" class="filter-btn px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded-full">Öğrenci</button>
+          <button data-filter="ogretmen" class="filter-btn px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded-full">Öğretmen</button>
+          <button data-filter="kurum" class="filter-btn px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded-full">Kurum</button>
         </div>
       </div>
     </header>
-    <div class="gantt-container border border-slate-200 rounded-lg">
-      <div id="gantt-chart" class="gantt-grid">
-        <div class="gantt-header">
-          <div class="gantt-cell gantt-month-header gantt-initiative-cell">Pazarlama Hamlesi</div>
-          <div class="gantt-cell gantt-month-header">Ağustos '25</div>
-          <div class="gantt-cell gantt-month-header">Eylül '25</div>
-          <div class="gantt-cell gantt-month-header">Ekim '25</div>
-          <div class="gantt-cell gantt-month-header">Kasım '25</div>
-          <div class="gantt-cell gantt-month-header">Aralık '25</div>
-          <div class="gantt-cell gantt-month-header">Ocak '26</div>
-          <div class="gantt-cell gantt-month-header">Şubat '26</div>
-          <div class="gantt-cell gantt-month-header">Mart '26</div>
-          <div class="gantt-cell gantt-month-header">Nisan '26</div>
-          <div class="gantt-cell gantt-month-header">Mayıs '26</div>
-          <div class="gantt-cell gantt-month-header">Haziran '26</div>
-          <div class="gantt-cell gantt-month-header">Temmuz '26</div>
-        </div>
-      </div>
+    <div class="gantt-container">
+      <div id="gantt-chart" class="gantt-grid"></div>
       <div id="loader">Veriler Yükleniyor...</div>
     </div>
   </div>
 
   <!-- CSV parsing library -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
-  <!-- Main script -->
   <script>
-    window.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', () => {
       const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTYD8dUx1q5XYhUTJ_D9ZAzyBX_oQZqsyM3N41HPBNwq9TwEtW5s2x9W5_fBRqnFFI2TpckMFL3qQkE/pub?gid=0&single=true&output=csv';
       const proxy = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(sheetUrl);
       const loader = document.getElementById('loader');
-      const ganttChart = document.getElementById('gantt-chart');
+      const gantt = document.getElementById('gantt-chart');
       const filtersEl = document.getElementById('persona-filters');
-      let dataPlan = [];
+      const months = ['Ağustos','Eylül','Ekim','Kasım','Aralık','Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz'];
+      const weeksPerMonth = 4;
+      const cellWidth = 120; // px
+      let data = [];
 
-      if (typeof Papa === 'undefined') {
-        loader.textContent = 'CSV parse kütüphanesi yüklenmedi!';
-        console.error('Papa is not defined');
-        return;
-      }
+      // Grid columns: first 300px for initiative then weeks
+      const totalWeeks = months.length * weeksPerMonth;
+      gantt.style.gridTemplateColumns = `300px repeat(${totalWeeks}, ${cellWidth}px)`;
 
-      // Fetch CSV via proxy then parse
-      console.log('Fetching CSV from', proxy);
-      fetch(proxy)
-        .then(res => res.ok ? res.text() : Promise.reject(res.statusText))
-        .then(csv => {
-          console.log('Raw CSV data:', csv);
-          const results = Papa.parse(csv, { header: true, skipEmptyLines: true });
-          console.log('Parsed data:', results.data);
-          dataPlan = results.data.map(item => ({
-            initiative: item.initiative,
-            startMonth: Number(item.startMonth),
-            duration: Number(item.duration),
-            color: item.color || 'bg-gray-400',
-            personas: item.personas ? item.personas.split(',').map(p => p.trim()) : []
-          }));
+      // Build header
+      let headerHtml = `<div class="gantt-header">`;
+      headerHtml += `<div class="gantt-cell gantt-week-header gantt-initiative-cell">Pazarlama Hamlesi</div>`;
+      months.forEach(m => {
+        for(let w=1; w<=weeksPerMonth; w++){
+          headerHtml += `<div class="gantt-cell gantt-week-header">${m} H${w}</div>`;
+        }
+      });
+      headerHtml += `</div>`;
+      gantt.innerHTML = headerHtml;
+
+      // Fetch and parse CSV
+      Papa.parse(proxy, {
+        download: true, header: true, skipEmptyLines: true,
+        complete: res => {
           loader.style.display = 'none';
-          renderChart('all');
-        })
-        .catch(err => {
-          loader.textContent = 'CSV yüklenirken hata: ' + err;
-          console.error('Fetch/parse error:', err);
-        });
+          data = res.data.map(item => ({
+            initiative: item.initiative,
+            personas: item.personas ? item.personas.split(',').map(x=>x.trim()) : [],
+            color: item.color || 'bg-gray-400',
+            monthIdx: months.indexOf(item.startMonth),
+            startWeek: Number(item.startWeek),
+            duration: Number(item.duration)
+          }));
+          render('all');
+        }, error: err => {
+          loader.textContent = 'CSV yüklenirken hata: '+err;
+          console.error(err);
+        }
+      });
 
-      function renderChart(filter) {
-        ganttChart.querySelectorAll('.gantt-row').forEach(r => r.remove());
-        const filtered = dataPlan.filter(item => filter === 'all' || item.personas.includes(filter));
-        filtered.forEach(item => {
-          const row = document.createElement('div');
-          row.className = 'gantt-row';
+      function render(filter){
+        // Remove existing rows
+        document.querySelectorAll('.gantt-row').forEach(r=>r.remove());
+        // Filter data
+        const arr = data.filter(d=> filter==='all' || d.personas.includes(filter));
+        arr.forEach(d=>{
+          const row = document.createElement('div'); row.className='gantt-row';
+          // initiative and tags
           let tags = '';
-          item.personas.forEach(p => {
+          d.personas.forEach(p=>{
             const map = { veli:['Veli','bg-blue-100 text-blue-800'], ogrenci:['Öğrenci','bg-green-100 text-green-800'], ogretmen:['Öğretmen','bg-yellow-100 text-yellow-800'], kurum:['Kurum','bg-red-100 text-red-800'] }[p];
-            if (map) tags += `<span class="persona-tag ${map[1]}">${map[0]}</span>`;
+            if(map) tags+=`<span class="persona-tag ${map[1]}">${map[0]}</span>`;
           });
-          row.innerHTML = `
-            <div class="gantt-cell gantt-initiative-cell flex flex-col justify-center">
-              <p class="font-semibold text-gray-800">${item.initiative}</p>
-              <div class="mt-1 flex flex-wrap">${tags}</div>
-            </div>
-            ${Array(12).fill('<div class="gantt-cell relative"></div>').join('')}
-          `;
-          ganttChart.appendChild(row);
-          if (!isNaN(item.startMonth) && !isNaN(item.duration)) {
-            const cell = row.children[item.startMonth + 1];
+          let cells = `<div class="gantt-cell gantt-initiative-cell flex flex-col justify-center"><p class="font-semibold text-gray-800">${d.initiative}</p><div class="mt-1 flex flex-wrap">${tags}</div></div>`;
+          // empty week cells
+          for(let i=0;i<totalWeeks;i++) cells+=`<div class="gantt-cell relative"></div>`;
+          row.innerHTML=cells;
+          gantt.appendChild(row);
+          // draw bar
+          if(d.monthIdx>=0 && d.startWeek>0){
+            const pos = d.monthIdx*weeksPerMonth + (d.startWeek-1);
+            const container = row.children[pos+1];
             const bar = document.createElement('div');
-            bar.className = `gantt-bar ${item.color}`;
-            bar.style.width = `calc(${item.duration * 100}% + ${item.duration - 1}px)`;
-            bar.textContent = item.initiative;
-            cell.appendChild(bar);
+            bar.className=`gantt-bar ${d.color}`;
+            bar.style.width = `${d.duration*cellWidth - 8}px`;
+            bar.style.left = '0';
+            bar.textContent = d.initiative;
+            container.appendChild(bar);
           }
         });
       }
 
-      filtersEl.addEventListener('click', e => {
-        if (e.target.tagName === 'BUTTON') {
+      filtersEl.addEventListener('click', e=>{
+        if(e.target.tagName==='BUTTON'){
           filtersEl.querySelector('.active').classList.remove('active');
           e.target.classList.add('active');
-          renderChart(e.target.getAttribute('data-filter'));
+          render(e.target.getAttribute('data-filter'));
         }
       });
     });

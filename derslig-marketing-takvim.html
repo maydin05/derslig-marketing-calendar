@@ -52,7 +52,6 @@
       let records = [];
 
       // Build headers
-      // Month row
       const thInit = document.createElement('th');
       thInit.textContent = 'Pazarlama Hamlesi';
       thInit.rowSpan = 2;
@@ -65,9 +64,8 @@
         th.className = 'p-2 border text-center';
         thMonth.appendChild(th);
       });
-      // Week row
-      for(let i = 0; i < months.length; i++){
-        for(let w = 1; w <= weeksPerMonth; w++){
+      for(let i=0;i<months.length;i++){
+        for(let w=1;w<=weeksPerMonth;w++){
           const th = document.createElement('th');
           th.textContent = w + '. Hafta';
           th.className = 'p-2 border text-center';
@@ -75,17 +73,14 @@
         }
       }
 
-      // Parse CSV
+      // Fetch and parse CSV
       fetch(proxy)
         .then(res => res.ok ? res.text() : Promise.reject(new Error(res.statusText)))
         .then(csvText => {
           const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
           records = parsed.data.map(item => {
-            // determine month index: numeric or string
             let mIdx = parseInt(item.startMonth,10);
-            if(isNaN(mIdx) || mIdx < 0 || mIdx >= months.length) {
-              mIdx = months.indexOf(item.startMonth);
-            }
+            if(isNaN(mIdx) || mIdx < 0 || mIdx >= months.length) mIdx = months.indexOf(item.startMonth);
             return {
               initiative: item.initiative,
               color: item.color || 'bg-gray-400',
@@ -104,49 +99,9 @@
 
       function render(filter){
         tbody.innerHTML = '';
-        records.filter(r => filter === 'all' || r.personas.includes(filter)).forEach(r => {
-          const tr = document.createElement('tr');
-          // Initiative cell
-          const tdInit = document.createElement('td');
-          tdInit.className = 'p-2 border';
-          tdInit.innerHTML = `<div class="font-semibold text-gray-800">${r.initiative}</div><div class="mt-1 flex flex-wrap">${r.personas.map(p => `<span class="persona-tag px-2 py-1 text-xs font-medium rounded-full ${
-            p === 'veli' ? 'bg-blue-100 text-blue-800' : p === 'ogrenci' ? 'bg-green-100 text-green-800' : p === 'ogretmen' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
-          }">${p[0].toUpperCase()+p.slice(1)}</span>`).join('')}</div>`;
-          tr.appendChild(tdInit);
-
-          let idx = 0;
-          while(idx < totalWeeks){
-            if(idx === (r.monthIdx * weeksPerMonth + (r.startWeek - 1))){
-              const tdBar = document.createElement('td');
-              tdBar.colSpan = r.duration;
-              tdBar.className = 'p-2 border relative';
-              const divBar = document.createElement('div');
-              divBar.className = `absolute inset-y-1 inset-x-1 ${r.color}`;
-              divBar.textContent = r.initiative;
-              tdBar.appendChild(divBar);
-              tr.appendChild(tdBar);
-              idx += r.duration;
-            } else {
-              const tdEmpty = document.createElement('td');
-              tdEmpty.className = 'p-2 border';
-              tr.appendChild(tdEmpty);
-              idx++;
-            }
-          }
-          tbody.appendChild(tr);
-        });
-      }
-
-      filtersEl.addEventListener('click', e => {
-        if(e.target.tagName === 'BUTTON'){
-          filtersEl.querySelector('.active').classList.replace('bg-blue-500','bg-gray-200');
-          filtersEl.querySelector('.active').classList.replace('text-white','text-gray-700');
-          e.target.classList.replace('bg-gray-200','bg-blue-500');
-          e.target.classList.replace('text-gray-700','text-white');
-          render(e.target.getAttribute('data-filter'));
-        }
-      });
-    });
-  </script>
-</body>
-</html>
+        records.filter(r=>filter==='all'||r.personas.includes(filter)).forEach(r=>{
+          const tr=document.createElement('tr');
+          // Initiative
+          const tdInit=document.createElement('td');
+          tdInit.className='p-2 border';
+          tdInit.innerHTML=`<div class=\

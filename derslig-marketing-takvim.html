@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Derslig 2025-26 Pazarlama Takvimi (Haftalık Görünüm)</title>
-  <!-- TailwindCSS -->
-  <script src="https://cdn.tailwindcss.com" defer></script>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
   <!-- Google Font -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
@@ -46,7 +46,9 @@
   <!-- CSV parsing library -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
+    // Ensures script runs after full page load
+    window.onload = function() {
+      console.log('Window loaded, initializing schedule');
       const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTYD8dUx1q5XYhUTJ_D9ZAzyBX_oQZqsyM3N41HPBNwq9TwEtW5s2x9W5_fBRqnFFI2TpckMFL3qQkE/pub?gid=0&single=true&output=csv';
       const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(sheetUrl);
       const months = ['Ağustos','Eylül','Ekim','Kasım','Aralık','Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz'];
@@ -65,10 +67,8 @@
       thInit.className = 'p-2 border text-left';
       thMonth.appendChild(thInit);
       months.forEach(month => {
-        const th = document.createElement('th');
-        th.textContent = month;
-        th.colSpan = weeksPerMonth;
-        th.className = 'p-2 border text-center';
+        const th = document.createElement('th'); th.textContent = month;
+        th.colSpan = weeksPerMonth; th.className = 'p-2 border text-center';
         thMonth.appendChild(th);
       });
       for (let i = 0; i < months.length; i++) {
@@ -80,11 +80,13 @@
         }
       }
 
-      // Fetch & parse CSV
+      // Fetch and parse CSV
       fetch(proxyUrl)
         .then(res => res.ok ? res.text() : Promise.reject(new Error(res.statusText)))
         .then(csvText => {
+          console.log('Fetched CSV snippet:', csvText.slice(0,100));
           const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+          console.log('Parsed data count:', parsed.data.length);
           records = parsed.data.map(item => {
             let mIdx = parseInt(item.startMonth, 10);
             if (isNaN(mIdx) || mIdx < 0 || mIdx >= months.length) mIdx = months.indexOf(item.startMonth);
@@ -102,17 +104,54 @@
         })
         .catch(err => {
           tbody.innerHTML = `<tr><td colspan="${totalWeeks+1}" class="p-4 text-center text-red-500">CSV yüklenirken hata: ${err.message}</td></tr>`;
+          console.error('CSV Error:', err);
         });
 
+      // Render schedule rows
       function render(filter) {
+        console.log('Rendering filter:', filter);
         tbody.innerHTML = '';
         records.filter(r => filter === 'all' || r.personas.includes(filter)).forEach(r => {
           const tr = document.createElement('tr');
-          // Initiative & category badge bottom-right
-          const tdInit = document.createElement('td');
-          tdInit.className = 'p-2 border relative';
+          // Initiative + category
+          const tdInit = document.createElement('td'); tdInit.className = 'p-2 border relative';
           tdInit.innerHTML = `
             <div class="font-semibold text-gray-800 mb-2">${r.initiative}</div>
-            <div class="mt-1 flex flex-wrap mb-4">${r.personas.map(p => {
-              const colors = { veli:['bg-blue-100','text-blue-800'], ogrenci:['bg-green-100','text-green-800'], ogretmen:['bg-yellow-100','text-yellow-800'], kurum:['bg-red-100','text-red-800'] }[p] || ['bg-gray-200','text-gray-700'];
-              return `<span class=\
+            <div class="mt-1 flex flex-wrap mb-4">${r.personas.map(p=>`<span class="persona-tag px-2 py-1 text-xs font-medium rounded-full ${
+              p==='veli'?'bg-blue-100 text-blue-800':p==='ogrenci'?'bg-green-100 text-green-800':p==='ogretmen'?'bg-yellow-100 text-yellow-800':'bg-red-100 text-red-800'
+            }">${p.charAt(0).toUpperCase()+p.slice(1)}</span>`).join('')}</div>
+            <div class="absolute bottom-1 right-1 px-2 py-1 text-xs font-medium rounded bg-yellow-100 text-yellow-800">${r.category}</div>
+          `;
+          tr.appendChild(tdInit);
+
+          let idx = 0;
+          while (idx < totalWeeks) {
+            if (idx === r.monthIdx * weeksPerMonth + (r.startWeek - 1)) {
+              const tdBar = document.createElement('td'); tdBar.colSpan = r.duration; tdBar.className = 'p-2 border relative';
+              const divBar = document.createElement('div');
+              const textColor = /yellow/.test(r.color) ? 'text-gray-900' : 'text-white';
+              divBar.className = `absolute inset-1 flex items-center justify-center ${r.color} ${textColor}`;
+              divBar.textContent = r.initiative;
+              tdBar.appendChild(divBar);
+              tr.appendChild(tdBar);
+              idx += r.duration;
+            } else {
+              const tdEmpty = document.createElement('td'); tdEmpty.className = 'p-2 border'; tr.appendChild(tdEmpty); idx++;
+            }
+          }
+          tbody.appendChild(tr);
+        });
+      }
+
+      // Filter: only one active
+      filtersEl.addEventListener('click', e => {
+        if (e.target.tagName === 'BUTTON') {
+          filtersEl.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+          e.target.classList.add('active');
+          render(e.target.getAttribute('data-filter'));
+        }
+      });
+    }; // end window.onload
+  </script>
+</body>
+</html>

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Derslig 2025-26 Pazarlama Takvimi</title>
   <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com" defer></script>
+  <script src="https://cdn.tailwindcss.com"></script>
   <!-- Google Font -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
@@ -61,25 +61,26 @@
     </div>
   </div>
 
-  <!-- PapaParse ve diğer scriptler en sona: -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/papaparse/5.3.2/papaparse.min.js"></script>
+  <!-- CSV parsing library -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+  <!-- Main script -->
   <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      const googleSheetCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTYD8dUx1q5XYhUTJ_D9ZAzyBX_oQZqsyM3N41HPBNwq9TwEtW5s2x9W5_fBRqnFFI2TpckMFL3qQkE/pub?gid=0&single=true&output=csv';
+    window.onload = function() {
+      const googleSheetCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTYD8dUx1q5XYhUTJ_D9ZAzyBX_oQZqsyM3N41HPBNwq9TwEtW5s2x9W5_fBRqnFFI2TpckMFL3qQkE/pub?gid=0&single=true&output=csv';  // Örnek: 'https://docs.google.com/spreadsheets/d/e/.../pub?gid=0&single=true&output=csv'
       const proxyUrl = 'https://api.allorigins.win/raw?url=';
-      const finalCsvUrl = proxyUrl + encodeURIComponent(googleSheetCsvUrl);
+      const csvUrl = proxyUrl + encodeURIComponent(googleSheetCsvUrl);
       const loader = document.getElementById('loader');
       const ganttChart = document.getElementById('gantt-chart');
       const filterButtons = document.getElementById('persona-filters');
       let marketingPlan = [];
 
       if (typeof Papa === 'undefined') {
-        loader.textContent = 'CSV parse kütüphanesi yüklenmedi!';
+        loader.textContent = 'CSV parse kütüphanesi yüklenmedi! Lütfen script yüklemesini kontrol edin.';
         console.error('Papa is not defined');
         return;
       }
 
-      Papa.parse(finalCsvUrl, {
+      Papa.parse(csvUrl, {
         download: true,
         header: true,
         skipEmptyLines: true,
@@ -89,7 +90,7 @@
             initiative: item.initiative,
             startMonth: item.startMonth,
             duration: item.duration,
-            color: item.color,
+            color: item.color || 'bg-gray-400',
             personas: item.personas ? item.personas.split(',').map(p => p.trim()) : []
           }));
           renderChart();
@@ -102,35 +103,30 @@
 
       function renderChart(filter = 'all') {
         ganttChart.querySelectorAll('.gantt-row').forEach(r => r.remove());
-        const plan = marketingPlan.filter(item => filter === 'all' || item.personas.includes(filter));
-
-        plan.forEach(item => {
-          const row = document.createElement('div');
-          row.className = 'gantt-row';
-          let tagsHTML = '';
+        const filtered = marketingPlan.filter(item => filter === 'all' || item.personas.includes(filter));
+        filtered.forEach(item => {
+          const row = document.createElement('div'); row.className = 'gantt-row';
+          let tags = '';
           item.personas.forEach(p => {
             const map = { veli: ['Veli','bg-blue-100 text-blue-800'], ogrenci: ['Öğrenci','bg-green-100 text-green-800'], ogretmen: ['Öğretmen','bg-yellow-100 text-yellow-800'], kurum: ['Kurum','bg-red-100 text-red-800'] }[p];
-            if (map) tagsHTML += `<span class="persona-tag ${map[1]}">${map[0]}</span>`;
+            if (map) tags += `<span class="persona-tag ${map[1]}">${map[0]}</span>`;
           });
-
           row.innerHTML = `
             <div class="gantt-cell gantt-initiative-cell flex flex-col justify-center">
               <p class="font-semibold text-gray-800">${item.initiative}</p>
-              <div class="mt-1 flex flex-wrap">${tagsHTML}</div>
+              <div class="mt-1 flex flex-wrap">${tags}</div>
             </div>
             ${Array(12).fill('<div class="gantt-cell relative"></div>').join('')}
           `;
           ganttChart.appendChild(row);
-
-          const start = parseInt(item.startMonth,10);
-          const dur   = parseInt(item.duration,10);
+          const start = parseInt(item.startMonth,10), dur = parseInt(item.duration,10);
           if (!isNaN(start) && !isNaN(dur)) {
-            const container = row.children[start+1];
+            const cell = row.children[start+1];
             const bar = document.createElement('div');
             bar.className = `gantt-bar ${item.color}`;
             bar.style.width = `calc(${dur*100}% + ${dur-1}px)`;
             bar.textContent = item.initiative;
-            container.appendChild(bar);
+            cell.appendChild(bar);
           }
         });
       }
@@ -142,7 +138,7 @@
           renderChart(e.target.getAttribute('data-filter'));
         }
       });
-    });
+    };
   </script>
 </body>
 </html>

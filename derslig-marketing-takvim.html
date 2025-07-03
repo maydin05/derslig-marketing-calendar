@@ -1,22 +1,23 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Derslig 2025-26 Pazarlama Takvimi (Haftalık Görünüm)</title>
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com" defer></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     .filter-btn { background-color: #E5E7EB; color: #374151; }
     .filter-btn.active { background-color: #2563EB; color: #FFFFFF; }
+    .persona-tag { display: inline-flex; align-items: center; padding: 0.25rem 0.5rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; margin: 0 0.25rem 0.25rem 0; }
   </style>
 </head>
 <body class="p-4 bg-gray-100 font-inter">
-  <!-- Sticky Header (Title + Filters + Table Header) -->
-  <div class="sticky top-0 z-50 bg-white">
-    <div class="max-w-full mx-auto rounded-xl shadow-lg p-6">
-      <header>
+  <!-- Horizontal scroll container -->
+  <div class="overflow-x-auto">
+    <!-- Sticky header and table header -->
+    <div class="sticky top-0 bg-white z-50">
+      <div class="max-w-full mx-auto px-6 py-4">
         <h1 class="text-2xl font-bold text-gray-800 mb-1">Derslig 2025-26 Pazarlama Takvimi (Haftalık Görünüm)</h1>
         <p class="text-gray-600 mb-4">Her ay 4 haftadan oluşan zaman çizelgesi.</p>
         <div class="flex flex-wrap gap-2 items-center mb-4">
@@ -29,29 +30,25 @@
             <button data-filter="kurum" class="filter-btn px-3 py-1 text-sm rounded-full">Kurum</button>
           </div>
         </div>
-      </header>
-      <!-- Table Header -->
-      <div class="overflow-x-auto">
+        <!-- Table header -->
         <table class="min-w-max border-collapse w-full">
-          <thead class="bg-white sticky top-[5.5rem] z-40">
+          <thead class="bg-white">
             <tr id="header-month"></tr>
             <tr id="header-week"></tr>
           </thead>
         </table>
       </div>
     </div>
+    <!-- Table body scrollable under header -->
+    <div class="max-h-[calc(100vh-200px)] overflow-y-auto bg-white">
+      <table class="min-w-max border-collapse w-full">
+        <tbody id="schedule-body">
+          <tr><td colspan="100" class="p-4 text-center text-gray-500">Veriler yükleniyor...</td></tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 
-  <!-- Scrollable Table Body -->
-  <div class="overflow-auto max-h-[calc(100vh-200px)] border rounded-lg mt-4 bg-white">
-    <table class="min-w-max border-collapse w-full">
-      <tbody id="schedule-body">
-        <tr><td colspan="100" class="p-4 text-center text-gray-500">Veriler yükleniyor...</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- PapaParse CDN -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
   <script>
     window.onload = function() {
@@ -66,25 +63,17 @@
       const filtersEl = document.getElementById('persona-filters');
       let records = [];
 
-      // Build table header
+      // Build headers
       const thInit = document.createElement('th');
-      thInit.textContent = 'Pazarlama Hamlesi';
-      thInit.rowSpan = 2;
-      thInit.className = 'p-2 border text-left';
+      thInit.textContent = 'Pazarlama Hamlesi'; thInit.rowSpan = 2; thInit.className = 'p-2 border text-left';
       thMonth.appendChild(thInit);
       months.forEach(month => {
-        const th = document.createElement('th');
-        th.textContent = month;
-        th.colSpan = weeksPerMonth;
-        th.className = 'p-2 border text-center';
+        const th = document.createElement('th'); th.textContent = month; th.colSpan = weeksPerMonth; th.className = 'p-2 border text-center';
         thMonth.appendChild(th);
       });
       for (let i = 0; i < months.length; i++) {
         for (let w = 1; w <= weeksPerMonth; w++) {
-          const th = document.createElement('th');
-          th.textContent = `${w}. Hafta`;
-          th.className = 'p-2 border text-center';
-          thWeek.appendChild(th);
+          const th = document.createElement('th'); th.textContent = `${w}. Hafta`; th.className = 'p-2 border text-center'; thWeek.appendChild(th);
         }
       }
 
@@ -92,26 +81,17 @@
         return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
       }
 
-      // Fetch & parse CSV
+      // Fetch CSV and parse
       fetch(proxyUrl)
         .then(res => res.ok ? res.text() : Promise.reject(new Error(res.statusText)))
         .then(csvText => {
           const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
           records = parsed.data.map(item => {
-            const rawList = item.personas ? item.personas.split(',').map(p => p.trim()) : [];
-            const personas = rawList.map(p => normalizeKey(p));
-            let mIdx = parseInt(item.startMonth, 10);
-            if (isNaN(mIdx) || mIdx < 0 || mIdx >= months.length) mIdx = months.indexOf(item.startMonth);
-            return {
-              initiative: item.initiative,
-              category: item.category || '',
-              color: item.color || 'bg-gray-400',
-              rawPersonas: rawList,
-              personas: personas,
-              monthIdx: mIdx,
-              startWeek: Number(item.startWeek),
-              duration: Number(item.duration)
-            };
+            const rawList = item.personas ? item.personas.split(',').map(p=>p.trim()) : [];
+            const personas = rawList.map(p=>normalizeKey(p));
+            let mIdx = parseInt(item.startMonth,10);
+            if(isNaN(mIdx) || mIdx<0||mIdx>=months.length) mIdx=months.indexOf(item.startMonth);
+            return { initiative:item.initiative, category:item.category||'', color:item.color||'bg-gray-400', rawPersonas:rawList, personas, monthIdx:mIdx, startWeek:Number(item.startWeek), duration:Number(item.duration) };
           });
           render('all');
         })
@@ -121,59 +101,24 @@
         });
 
       function render(filter) {
-        tbody.innerHTML = '';
-        records.filter(r => filter === 'all' || r.personas.includes(filter)).forEach(r => {
-          const tr = document.createElement('tr');
-          const tdInit = document.createElement('td');
-          tdInit.className = 'p-2 border relative';
-          tdInit.innerHTML = `
-            <div class="font-semibold text-gray-800 mb-2">${r.initiative}</div>
-            <div class="mt-1 flex flex-wrap mb-4">${r.rawPersonas.map(p => {
-              const key = normalizeKey(p);
-              const colors = {
-                veli: ['bg-blue-100','text-blue-800'],
-                ogrenci: ['bg-green-100','text-green-800'],
-                ogretmen: ['bg-yellow-100','text-yellow-800'],
-                kurum: ['bg-red-100','text-red-800']
-              }[key] || ['bg-gray-200','text-gray-700'];
-              return `<span class="persona-tag px-2 py-1 text-xs font-medium rounded-full ${colors[0]} ${colors[1]}">${p}</span>`;
-            }).join('')}</div>
-            <div class="absolute bottom-1 right-1 px-2 py-1 text-xs font-medium rounded bg-yellow-100 text-yellow-800">${r.category}</div>
-          `;
+        tbody.innerHTML='';
+        records.filter(r => filter==='all' || r.personas.includes(filter)).forEach(r => {
+          const tr=document.createElement('tr');
+          const tdInit=document.createElement('td'); tdInit.className='p-2 border relative';
+          tdInit.innerHTML=`<div class=\"font-semibold text-gray-800 mb-2\">${r.initiative}</div><div class=\"mt-1 flex flex-wrap mb-4\">${r.rawPersonas.map(p=>{const key=normalizeKey(p);const c={veli:['bg-blue-100','text-blue-800'],ogrenci:['bg-green-100','text-green-800'],ogretmen:['bg-yellow-100','text-yellow-800'],kurum:['bg-red-100','text-red-800']}[key]||['bg-gray-200','text-gray-700'];return`<span class=\"persona-tag ${c[0]} ${c[1]}\">${p}</span>`;}).join('')}</div><div class=\"absolute bottom-1 right-1 px-2 py-1 text-xs font-medium rounded bg-yellow-100 text-yellow-800\">${r.category}</div>`;
           tr.appendChild(tdInit);
-
-          let idx = 0;
-          while (idx < totalWeeks) {
-            if (idx === r.monthIdx * weeksPerMonth + (r.startWeek - 1)) {
-              const tdBar = document.createElement('td');
-              tdBar.colSpan = r.duration;
-              tdBar.className = 'p-2 border relative';
-              const divBar = document.createElement('div');
-              const textColor = /yellow/.test(r.color) ? 'text-gray-900' : 'text-white';
-              divBar.className = `absolute inset-1 flex items-center justify-center ${r.color} ${textColor}`;
-              divBar.textContent = r.initiative;
-              tdBar.appendChild(divBar);
-              tr.appendChild(tdBar);
-              idx += r.duration;
-            } else {
-              const tdEmpty = document.createElement('td');
-              tdEmpty.className = 'p-2 border';
-              tr.appendChild(tdEmpty);
-              idx++;
-            }
+          let idx=0;
+          while(idx<totalWeeks){
+            if(idx===r.monthIdx*weeksPerMonth+(r.startWeek-1)){
+              const tdBar=document.createElement('td');tdBar.colSpan=r.duration;tdBar.className='p-2 border relative';
+              const divBar=document.createElement('div');const textColor=/yellow/.test(r.color)?'text-gray-900':'text-white';divBar.className=`absolute inset-1 flex items-center justify-center ${r.color} ${textColor}`;divBar.textContent=r.initiative;tdBar.appendChild(divBar);tr.appendChild(tdBar);idx+=r.duration;
+            } else {const tdEmpty=document.createElement('td');tdEmpty.className='p-2 border';tr.appendChild(tdEmpty);idx++;}
           }
           tbody.appendChild(tr);
         });
       }
 
-      // Single-select filters
-      filtersEl.addEventListener('click', e => {
-        if (e.target.tagName === 'BUTTON') {
-          filtersEl.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-          e.target.classList.add('active');
-          render(e.target.getAttribute('data-filter'));
-        }
-      });
+      filtersEl.addEventListener('click',e=>{if(e.target.tagName==='BUTTON'){filtersEl.querySelectorAll('.filter-btn').forEach(btn=>btn.classList.remove('active'));e.target.classList.add('active');render(e.target.getAttribute('data-filter'));}});
     };
   </script>
 </body>

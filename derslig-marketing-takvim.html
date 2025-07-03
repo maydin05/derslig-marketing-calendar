@@ -4,7 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Derslig 2025-26 Pazarlama Takvimi (Haftalık Görünüm)</title>
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com" defer></script>
+  <!-- Google Font -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 </head>
 <body class="p-4 bg-gray-100 font-inter">
@@ -37,11 +39,14 @@
     </div>
   </div>
 
+  <!-- CSV parsing library -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
   <script>
+    console.log('Weekly schedule script loaded');
     document.addEventListener('DOMContentLoaded', () => {
-      const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTYD8dUx1q5XYhUTJ_D9ZAzyBX_oQZqsyM3N41HPBNwq9TwEtW5s2x9W5_fBRqnFFI2TpckMFL3qQkE/pub?gid=0&single=true&output=csv';
-      const proxy = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(sheetUrl);
+      console.log('DOMContentLoaded fired');
+      const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTYD8dUx1q5XYhUTJ_D9ZAzyBX_oQZqsyM3N41HPBNwq9TwEtW5s2x9W5_fBRqnFFI2TpckMFL3qQkE/pub?gid=0&single=true&output=csv'; // Publish edilmiş CSV linkiniz
+      const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(sheetUrl);
       const months = ['Ağustos','Eylül','Ekim','Kasım','Aralık','Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz'];
       const weeksPerMonth = 4;
       const totalWeeks = months.length * weeksPerMonth;
@@ -51,36 +56,43 @@
       const filtersEl = document.getElementById('persona-filters');
       let records = [];
 
-      // Build headers
+      // Build month header
       const thInit = document.createElement('th');
       thInit.textContent = 'Pazarlama Hamlesi';
       thInit.rowSpan = 2;
       thInit.className = 'p-2 border text-left';
       thMonth.appendChild(thInit);
-      months.forEach(m => {
+      months.forEach(month => {
         const th = document.createElement('th');
-        th.textContent = m;
+        th.textContent = month;
         th.colSpan = weeksPerMonth;
         th.className = 'p-2 border text-center';
         thMonth.appendChild(th);
       });
-      for(let i=0;i<months.length;i++){
-        for(let w=1;w<=weeksPerMonth;w++){
+
+      // Build week header
+      for (let i = 0; i < months.length; i++) {
+        for (let w = 1; w <= weeksPerMonth; w++) {
           const th = document.createElement('th');
-          th.textContent = w + '. Hafta';
+          th.textContent = `${w}. Hafta`;
           th.className = 'p-2 border text-center';
           thWeek.appendChild(th);
         }
       }
 
       // Fetch and parse CSV
-      fetch(proxy)
+      fetch(proxyUrl)
         .then(res => res.ok ? res.text() : Promise.reject(new Error(res.statusText)))
         .then(csvText => {
+          console.log('Fetched CSV:', csvText.slice(0,100));
           const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+          console.log('Parsed data:', parsed.data);
           records = parsed.data.map(item => {
-            let mIdx = parseInt(item.startMonth,10);
-            if(isNaN(mIdx) || mIdx < 0 || mIdx >= months.length) mIdx = months.indexOf(item.startMonth);
+            // Determine month index (numeric or name)
+            let mIdx = parseInt(item.startMonth, 10);
+            if (isNaN(mIdx) || mIdx < 0 || mIdx >= months.length) {
+              mIdx = months.indexOf(item.startMonth);
+            }
             return {
               initiative: item.initiative,
               color: item.color || 'bg-gray-400',
@@ -97,11 +109,68 @@
           console.error('CSV Error:', err);
         });
 
-      function render(filter){
+      // Render function
+      function render(filter) {
+        console.log('Rendering filter:', filter);
         tbody.innerHTML = '';
-        records.filter(r=>filter==='all'||r.personas.includes(filter)).forEach(r=>{
-          const tr=document.createElement('tr');
-          // Initiative
-          const tdInit=document.createElement('td');
-          tdInit.className='p-2 border';
-          tdInit.innerHTML=`<div class=\
+        records.filter(r => filter === 'all' || r.personas.includes(filter)).forEach(r => {
+          const tr = document.createElement('tr');
+          // Initiative cell with tags
+          const tdInit = document.createElement('td');
+          tdInit.className = 'p-2 border';
+          tdInit.innerHTML = `
+            <div class="font-semibold text-gray-800">${r.initiative}</div>
+            <div class="mt-1 flex flex-wrap">
+              ${r.personas.map(p => {
+                const colors = {
+                  veli: ['bg-blue-100','text-blue-800'],
+                  ogrenci: ['bg-green-100','text-green-800'],
+                  ogretmen: ['bg-yellow-100','text-yellow-800'],
+                  kurum: ['bg-red-100','text-red-800']
+                }[p] || ['bg-gray-200','text-gray-700'];
+                return `<span class="persona-tag px-2 py-1 text-xs font-medium rounded-full ${colors[0]} ${colors[1]}">${p.charAt(0).toUpperCase()+p.slice(1)}</span>`;
+              }).join('')}
+            </div>`;
+          tr.appendChild(tdInit);
+
+          // Week cells and bars
+          let idx = 0;
+          while (idx < totalWeeks) {
+            if (idx === r.monthIdx * weeksPerMonth + (r.startWeek - 1)) {
+              const tdBar = document.createElement('td');
+              tdBar.colSpan = r.duration;
+              tdBar.className = 'p-2 border relative';
+              const divBar = document.createElement('div');
+              // Center text, choose readable color
+              const textColor = /yellow/.test(r.color) ? 'text-gray-900' : 'text-white';
+              divBar.className = `absolute inset-1 flex items-center justify-center ${r.color} ${textColor}`;
+              divBar.textContent = r.initiative;
+              tdBar.appendChild(divBar);
+              tr.appendChild(tdBar);
+              idx += r.duration;
+            } else {
+              const tdEmpty = document.createElement('td');
+              tdEmpty.className = 'p-2 border';
+              tr.appendChild(tdEmpty);
+              idx++;
+            }
+          }
+          tbody.appendChild(tr);
+        });
+      }
+
+      // Filter buttons
+      filtersEl.addEventListener('click', e => {
+        if (e.target.tagName === 'BUTTON') {
+          const prev = filtersEl.querySelector('.active');
+          prev.classList.replace('bg-blue-500','bg-gray-200');
+          prev.classList.replace('text-white','text-gray-700');
+          e.target.classList.replace('bg-gray-200','bg-blue-500');
+          e.target.classList.replace('text-gray-700','text-white');
+          render(e.target.getAttribute('data-filter'));
+        }
+      });
+    });
+  </script>
+</body>
+</html>

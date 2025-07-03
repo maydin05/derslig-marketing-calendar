@@ -4,7 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Derslig 2025-26 Pazarlama Takvimi (Haftalık Görünüm)</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- TailwindCSS -->
+  <script src="https://cdn.tailwindcss.com" defer></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     .filter-btn { background-color: #E5E7EB; color: #374151; }
@@ -12,12 +13,12 @@
   </style>
 </head>
 <body class="p-4 bg-gray-100 font-inter">
-  <div class="max-w-full mx-auto bg-white rounded-xl shadow-lg p-6 header-container">
-      <!-- Sticky header-container: freezes above scroll -->
-    <header class="mb-6">
-      <h1 class="text-2xl font-bold text-gray-800">Derslig 2025-26 Pazarlama Takvimi (Haftalık Görünüm)</h1>
-      <p class="mt-1 text-gray-600">Her ay 4 haftadan oluşan zaman çizelgesi.</p>
-      <div class="mt-4 flex flex-wrap gap-2 items-center">
+  <!-- Sticky Header -->
+  <div class="max-w-full mx-auto bg-white rounded-xl shadow-lg p-6 sticky top-0 z-50">
+    <header>
+      <h1 class="text-2xl font-bold text-gray-800 mb-1">Derslig 2025-26 Pazarlama Takvimi (Haftalık Görünüm)</h1>
+      <p class="text-gray-600 mb-4">Her ay 4 haftadan oluşan zaman çizelgesi.</p>
+      <div class="flex flex-wrap gap-2 items-center">
         <span class="font-semibold text-gray-700 mr-2">Filtrele:</span>
         <div id="persona-filters" class="flex gap-2">
           <button data-filter="all" class="filter-btn px-3 py-1 text-sm rounded-full active">Tümü</button>
@@ -28,20 +29,22 @@
         </div>
       </div>
     </header>
-
-    <div class="overflow-x-auto border rounded-lg">
-      <table class="min-w-max border-collapse">
-        <thead class="bg-white sticky top-0">
-          <tr id="header-month"></tr>
-          <tr id="header-week"></tr>
-        </thead>
-        <tbody id="schedule-body">
-          <tr><td colspan="100" class="p-4 text-center text-gray-500">Veriler yükleniyor...</td></tr>
-        </tbody>
-      </table>
-    </div>
   </div>
 
+  <!-- Schedule Table -->
+  <div class="overflow-x-auto border rounded-lg mt-4">
+    <table class="min-w-max border-collapse">
+      <thead class="bg-white sticky top-[7rem] z-40">
+        <tr id="header-month"></tr>
+        <tr id="header-week"></tr>
+      </thead>
+      <tbody id="schedule-body">
+        <tr><td colspan="100" class="p-4 text-center text-gray-500">Veriler yükleniyor...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- PapaParse CDN -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
   <script>
     window.onload = function() {
@@ -58,25 +61,29 @@
 
       // Build headers
       const thInit = document.createElement('th');
-      thInit.textContent = 'Pazarlama Hamlesi'; thInit.rowSpan = 2;
-      thInit.className = 'p-2 border text-left'; thMonth.appendChild(thInit);
+      thInit.textContent = 'Pazarlama Hamlesi';
+      thInit.rowSpan = 2;
+      thInit.className = 'p-2 border text-left';
+      thMonth.appendChild(thInit);
       months.forEach(month => {
-        const th = document.createElement('th'); th.textContent = month;
-        th.colSpan = weeksPerMonth; th.className = 'p-2 border text-center'; thMonth.appendChild(th);
+        const th = document.createElement('th');
+        th.textContent = month;
+        th.colSpan = weeksPerMonth;
+        th.className = 'p-2 border text-center';
+        thMonth.appendChild(th);
       });
       for (let i = 0; i < months.length; i++) {
         for (let w = 1; w <= weeksPerMonth; w++) {
-          const th = document.createElement('th'); th.textContent = `${w}. Hafta`;
-          th.className = 'p-2 border text-center'; thWeek.appendChild(th);
+          const th = document.createElement('th');
+          th.textContent = `${w}. Hafta`;
+          th.className = 'p-2 border text-center';
+          thWeek.appendChild(th);
         }
       }
 
-      // Normalization helper
+      // Normalize helper for personas
       function normalizeKey(str) {
-        return str
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '')
-          .toLowerCase();
+        return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
       }
 
       // Fetch & parse CSV
@@ -85,11 +92,8 @@
         .then(csvText => {
           const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
           records = parsed.data.map(item => {
-            // Raw persona labels
             const rawList = item.personas ? item.personas.split(',').map(p => p.trim()) : [];
-            // Normalized keys for filtering
             const personas = rawList.map(p => normalizeKey(p));
-            // Determine month index
             let mIdx = parseInt(item.startMonth, 10);
             if (isNaN(mIdx) || mIdx < 0 || mIdx >= months.length) mIdx = months.indexOf(item.startMonth);
             return {
@@ -107,16 +111,19 @@
         })
         .catch(err => {
           tbody.innerHTML = `<tr><td colspan="${totalWeeks+1}" class="p-4 text-center text-red-500">CSV yüklenirken hata: ${err.message}</td></tr>`;
+          console.error(err);
         });
 
+      // Render rows
       function render(filter) {
         tbody.innerHTML = '';
         records
           .filter(r => filter === 'all' || r.personas.includes(filter))
           .forEach(r => {
             const tr = document.createElement('tr');
-            const tdInit = document.createElement('td'); tdInit.className = 'p-2 border relative';
-            // Initiative, personas, category
+            // Initiative cell
+            const tdInit = document.createElement('td');
+            tdInit.className = 'p-2 border relative';
             tdInit.innerHTML = `
               <div class="font-semibold text-gray-800 mb-2">${r.initiative}</div>
               <div class="mt-1 flex flex-wrap mb-4">
@@ -135,10 +142,13 @@
             `;
             tr.appendChild(tdInit);
 
+            // Weeks & bars
             let idx = 0;
             while (idx < totalWeeks) {
               if (idx === r.monthIdx * weeksPerMonth + (r.startWeek - 1)) {
-                const tdBar = document.createElement('td'); tdBar.colSpan = r.duration; tdBar.className = 'p-2 border relative';
+                const tdBar = document.createElement('td');
+                tdBar.colSpan = r.duration;
+                tdBar.className = 'p-2 border relative';
                 const divBar = document.createElement('div');
                 const textColor = /yellow/.test(r.color) ? 'text-gray-900' : 'text-white';
                 divBar.className = `absolute inset-1 flex items-center justify-center ${r.color} ${textColor}`;
@@ -147,7 +157,10 @@
                 tr.appendChild(tdBar);
                 idx += r.duration;
               } else {
-                const tdEmpty = document.createElement('td'); tdEmpty.className = 'p-2 border'; tr.appendChild(tdEmpty); idx++;
+                const tdEmpty = document.createElement('td');
+                tdEmpty.className = 'p-2 border';
+                tr.appendChild(tdEmpty);
+                idx++;
               }
             }
             tbody.appendChild(tr);

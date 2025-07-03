@@ -42,10 +42,8 @@
   <!-- CSV parsing library -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
   <script>
-    console.log('Weekly schedule script loaded');
     document.addEventListener('DOMContentLoaded', () => {
-      console.log('DOMContentLoaded fired');
-      const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTYD8dUx1q5XYhUTJ_D9ZAzyBX_oQZqsyM3N41HPBNwq9TwEtW5s2x9W5_fBRqnFFI2TpckMFL3qQkE/pub?gid=0&single=true&output=csv'; // Publish edilmiş CSV linkiniz
+      const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTYD8dUx1q5XYhUTJ_D9ZAzyBX_oQZqsyM3N41HPBNwq9TwEtW5s2x9W5_fBRqnFFI2TpckMFL3qQkE/pub?gid=0&single=true&output=csv';
       const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(sheetUrl);
       const months = ['Ağustos','Eylül','Ekim','Kasım','Aralık','Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz'];
       const weeksPerMonth = 4;
@@ -84,17 +82,14 @@
       fetch(proxyUrl)
         .then(res => res.ok ? res.text() : Promise.reject(new Error(res.statusText)))
         .then(csvText => {
-          console.log('Fetched CSV:', csvText.slice(0,100));
           const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
-          console.log('Parsed data:', parsed.data);
           records = parsed.data.map(item => {
             // Determine month index (numeric or name)
             let mIdx = parseInt(item.startMonth, 10);
-            if (isNaN(mIdx) || mIdx < 0 || mIdx >= months.length) {
-              mIdx = months.indexOf(item.startMonth);
-            }
+            if (isNaN(mIdx) || mIdx < 0 || mIdx >= months.length) mIdx = months.indexOf(item.startMonth);
             return {
               initiative: item.initiative,
+              category: item.category || '',
               color: item.color || 'bg-gray-400',
               personas: item.personas ? item.personas.split(',').map(p => p.trim()) : [],
               monthIdx: mIdx,
@@ -111,15 +106,17 @@
 
       // Render function
       function render(filter) {
-        console.log('Rendering filter:', filter);
         tbody.innerHTML = '';
         records.filter(r => filter === 'all' || r.personas.includes(filter)).forEach(r => {
           const tr = document.createElement('tr');
-          // Initiative cell with tags
+          // Initiative cell with category and tags
           const tdInit = document.createElement('td');
           tdInit.className = 'p-2 border';
           tdInit.innerHTML = `
-            <div class="font-semibold text-gray-800">${r.initiative}</div>
+            <div class="flex justify-between items-center">
+              <div class="font-semibold text-gray-800">${r.initiative}</div>
+              <div class="px-2 py-1 text-xs font-medium rounded bg-yellow-100 text-yellow-800">${r.category}</div>
+            </div>
             <div class="mt-1 flex flex-wrap">
               ${r.personas.map(p => {
                 const colors = {
@@ -141,7 +138,6 @@
               tdBar.colSpan = r.duration;
               tdBar.className = 'p-2 border relative';
               const divBar = document.createElement('div');
-              // Center text, choose readable color
               const textColor = /yellow/.test(r.color) ? 'text-gray-900' : 'text-white';
               divBar.className = `absolute inset-1 flex items-center justify-center ${r.color} ${textColor}`;
               divBar.textContent = r.initiative;

@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Derslig 2025-26 Pazarlama Takvimi (Dinamik)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- PapaParse kütüphanesi CSV dosyasını kolayca işlemek için eklendi -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/papaparse/5.3.2/papaparse.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+            /* slate-100 */
+        }
+
+        .gantt-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .gantt-grid {
+            display: grid;
+            min-width: 2220px;
+            grid-template-columns: 300px repeat(12, 160px);
+        }
+
+        .gantt-header,
+        .gantt-row {
+            display: contents;
+        }
+
+        .gantt-cell {
+            border-bottom: 1px solid #e2e8f0;
+            /* slate-200 */
+            border-right: 1px solid #e2e8f0;
+            padding: 0.5rem;
+            white-space: nowrap;
+        }
+
+        .gantt-initiative-cell {
+            position: sticky;
+            left: 0;
+            background-color: #f8fafc;
+            /* slate-50 */
+            z-index: 10;
+            border-right: 2px solid #cbd5e1;
+            /* slate-300 */
+        }
+
+        .gantt-month-header {
+            position: sticky;
+            top: 0;
+            background-color: #f8fafc;
+            z-index: 20;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .gantt-bar {
+            position: absolute;
+            height: 28px;
+            border-radius: 0.25rem;
+            color: white;
+            font-size: 0.75rem;
+            line-height: 28px;
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .gantt-bar:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            z-index: 30;
+        }
+
+        .persona-tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-right: 4px;
+            margin-bottom: 4px;
+        }
+
+        .filter-btn.active {
+            background-color: #2563eb;
+            /* blue-600 */
+            color: white;
+        }
+
+        #loader {
+            text-align: center;
+            padding: 4rem;
+            font-size: 1.2rem;
+            color: #475569;
+        }
+    </style>
+</head>
+
+<body class="p-4 sm:p-6 md:p-8">
+    <div class="max-w-full mx-auto bg-white rounded-xl shadow-lg p-6">
+        <!-- Başlık ve Filtreler -->
+        <header class="mb-6">
+            <h1 class="text-3xl font-bold text-gray-800">Derslig 2025-26 Pazarlama Takvimi</h1>
+            <p class="mt-1 text-gray-600">Stratejik hamleler, zaman çizelgesi ve hedeflenen personalar.</p>
+
+            <div class="mt-4 flex flex-wrap gap-2 items-center">
+                <span class="font-semibold text-gray-700 mr-2">Filtrele:</span>
+                <div id="persona-filters">
+                    <button data-filter="all"
+                        class="filter-btn active px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded-full transition">Tümü</button>
+                    <button data-filter="veli"
+                        class="filter-btn px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded-full transition">Veli</button>
+                    <button data-filter="ogrenci"
+                        class="filter-btn px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded-full transition">Öğrenci</button>
+                    <button data-filter="ogretmen"
+                        class="filter-btn px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded-full transition">Öğretmen</button>
+                    <button data-filter="kurum"
+                        class="filter-btn px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded-full transition">Kurum</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Gantt Chart Konteyneri -->
+        <div class="gantt-container border border-slate-200 rounded-lg">
+            <div id="gantt-chart" class="gantt-grid">
+                <!-- Başlık Satırı -->
+                <div class="gantt-header">
+                    <div class="gantt-cell gantt-month-header gantt-initiative-cell">Pazarlama Hamlesi</div>
+                    <div class="gantt-cell gantt-month-header">Ağustos '25</div>
+                    <div class="gantt-cell gantt-month-header">Eylül '25</div>
+                    <div class="gantt-cell gantt-month-header">Ekim '25</div>
+                    <div class="gantt-cell gantt-month-header">Kasım '25</div>
+                    <div class="gantt-cell gantt-month-header">Aralık '25</div>
+                    <div class="gantt-cell gantt-month-header">Ocak '26</div>
+                    <div class="gantt-cell gantt-month-header">Şubat '26</div>
+                    <div class="gantt-cell gantt-month-header">Mart '26</div>
+                    <div class="gantt-cell gantt-month-header">Nisan '26</div>
+                    <div class="gantt-cell gantt-month-header">Mayıs '26</div>
+                    <div class="gantt-cell gantt-month-header">Haziran '26</div>
+                    <div class="gantt-cell gantt-month-header">Temmuz '26</div>
+                </div>
+                <!-- Veriler yüklendiğinde bu alan doldurulacak -->
+            </div>
+            <div id="loader">Veriler Yükleniyor...</div>
+        </div>
+    </div>
+
+    <script>
+        // !!! ÖNEMLİ !!!
+        // Google Sheets'ten "Web'de yayınla -> CSV" olarak aldığınız linki buraya yapıştırın.
+        const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTYD8dUx1q5XYhUTJ_D9ZAzyBX_oQZqsyM3N41HPBNwq9TwEtW5s2x9W5_fBRqnFFI2TpckMFL3qQkE/pub?gid=0&single=true&output=csv';
+
+        const personaDetails = {
+            veli: { text: 'Veli', color: 'bg-blue-100 text-blue-800' },
+            ogrenci: { text: 'Öğrenci', color: 'bg-green-100 text-green-800' },
+            ogretmen: { text: 'Öğretmen', color: 'bg-yellow-100 text-yellow-800' },
+            kurum: { text: 'Kurum', color: 'bg-red-100 text-red-800' }
+        };
+
+        let marketingPlan = [];
+        const ganttChart = document.getElementById('gantt-chart');
+        const loader = document.getElementById('loader');
+
+        function renderChart(filter = 'all') {
+            // Mevcut satırları temizle
+            const rows = ganttChart.querySelectorAll('.gantt-row');
+            rows.forEach(row => row.remove());
+
+            if (marketingPlan.length === 0) return;
+
+            const filteredPlan = marketingPlan.filter(item => {
+                if (filter === 'all') return true;
+                return item.personas.includes(filter);
+            });
+
+            filteredPlan.forEach(item => {
+                const row = document.createElement('div');
+                row.className = 'gantt-row';
+
+                let personaTagsHTML = '';
+                if (item.personas) {
+                    item.personas.forEach(p => {
+                        const persona = personaDetails[p.trim()];
+                        if (persona) {
+                            personaTagsHTML += `<span class="persona-tag ${persona.color}">${persona.text}</span>`;
+                        }
+                    });
+                }
+
+                row.innerHTML = `
+                    <div class="gantt-cell gantt-initiative-cell flex flex-col justify-center">
+                        <p class="font-semibold text-gray-800">${item.initiative}</p>
+                        <div class="mt-1 flex flex-wrap">
+                            ${personaTagsHTML}
+                        </div>
+                    </div>
+                    ${Array(12).fill('<div class="gantt-cell relative"></div>').join('')}
+                `;
+                ganttChart.appendChild(row);
+
+                // Gantt çubuğunu ekle
+                const startMonth = parseInt(item.startMonth, 10);
+                const duration = parseInt(item.duration, 10);
+
+                if (!isNaN(startMonth) && !isNaN(duration) && startMonth >= 0 && startMonth < 12) {
+                    const barContainer = row.children[startMonth + 1];
+                    const bar = document.createElement('div');
+                    bar.className = `gantt-bar ${item.color || 'bg-gray-400'}`;
+                    bar.style.width = `calc(${duration * 100}% + ${duration - 1}px)`;
+                    bar.innerText = item.initiative;
+                    barContainer.appendChild(bar);
+                }
+            });
+        }
+
+        // CSV verisini çek ve işle
+        document.addEventListener('DOMContentLoaded', () => {
+            if (csvUrl === 'BURAYA_GOOGLE_SHEETS_CSV_URL_YAPIŞTIRILACAK') {
+                loader.innerText = 'Lütfen kodu düzenleyip Google Sheets CSV URL\'nizi girin.';
+                return;
+            }
+
+            Papa.parse(csvUrl, {
+                download: true,
+                header: true,
+                skipEmptyLines: true,
+                complete: function (results) {
+                    loader.style.display = 'none';
+                    marketingPlan = results.data.map(item => ({
+                        ...item,
+                        personas: item.personas ? item.personas.split(',').map(p => p.trim()) : []
+                    }));
+                    renderChart();
+                },
+                error: function (err) {
+                    loader.innerText = 'Veri yüklenirken bir hata oluştu. Lütfen CSV URL\'nizi ve formatını kontrol edin.';
+                    console.error("CSV Parse Error:", err);
+                }
+            });
+        });
+
+        // Filtreleme
+        const filterButtons = document.getElementById('persona-filters');
+        filterButtons.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                filterButtons.querySelector('.active').classList.remove('active');
+                e.target.classList.add('active');
+
+                const filterValue = e.target.getAttribute('data-filter');
+                renderChart(filterValue);
+            }
+        });
+
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>

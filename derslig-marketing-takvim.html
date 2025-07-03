@@ -8,9 +8,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     /* İlk sütunu 3 kat genişlet */
-    table th:first-child,
-    table td:first-child {
-      min-width: 45rem; /* Ör: orijinal 15rem ise 3× = 45rem */
+        /* İlk sütunu sadece month-header ve body için genişlet */
+    thead tr.month-header th:first-child,
+    tbody td:first-child {
+      min-width: 45rem;
       max-width: 45rem;
     }
     .filter-bar { position: sticky; top: 0; z-index: 50; background: white; }

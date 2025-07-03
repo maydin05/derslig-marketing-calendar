@@ -1,38 +1,28 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Derslig 2025-26 Pazarlama Takvimi (Haftalık Görünüm)</title>
-  <script src="https://cdn.tailwindcss.com" defer></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
-    /* Fixed filter bar */
-    .filter-bar {
-      position: sticky;
-      top: 0;
-      z-index: 50;
-      background-color: white;
-    }
-    /* Scrollable table body, adjust height below filter-bar */
-    .table-container {
-      max-height: calc(100vh - 6rem); /* filter-bar ~6rem high */
-      overflow-y: auto;
-    }
-    /* Sticky table header inside scrollable table */
-    thead.sticky-header th {
-      position: sticky;
-      top: 0;
-      z-index: 40;
-      background-color: white;
-    }
+    /* Filter bar sticky */
+    .filter-bar { position: sticky; top: 0; z-index: 50; background: white; }
+    /* Scrollable table container height (adjust for filter-bar height) */
+    .table-container { max-height: calc(100vh - 8rem); overflow-y: auto; }
+    /* Fixed header rows */
+    thead tr.month-header th { position: sticky; top: 8rem; z-index: 40; background: white; }
+    thead tr.week-header th { position: sticky; top: calc(8rem + 2.5rem); z-index: 30; background: white; }
+    /* First column wide */
+    table th:first-child, table td:first-child { min-width: 45rem; }
     .filter-btn { background-color: #E5E7EB; color: #374151; }
     .filter-btn.active { background-color: #2563EB; color: #FFFFFF; }
-    .persona-tag { display: inline-flex; align-items: center; padding: 0.25rem 0.5rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; margin: 0 0.25rem 0.25rem 0; }
   </style>
 </head>
 <body class="bg-gray-100 font-inter">
-  <!-- Filter bar (sticky) -->
+  <!-- Sticky Filter Bar -->
   <div class="filter-bar p-6 shadow">
     <h1 class="text-2xl font-bold text-gray-800 mb-1">Derslig 2025-26 Pazarlama Takvimi (Haftalık Görünüm)</h1>
     <p class="text-gray-600 mb-4">Her ay 4 haftadan oluşan zaman çizelgesi.</p>
@@ -48,16 +38,16 @@
     </div>
   </div>
 
-  <!-- Scrollable Table Container -->
-  <div class="table-container overflow-x-auto bg-white border rounded-lg mt-4 mx-6">
+  <!-- Table Container -->
+  <div class="table-container mx-6 mt-4 bg-white border rounded-lg">
     <table class="min-w-full border-collapse">
-      <thead class="sticky-header">
-        <tr>
-          <th class="p-2 border text-left" rowspan="2">Pazarlama Hamlesi</th>
-          <!-- Month columns -->
+      <thead>
+        <tr class="month-header">
+          <th rowspan="2" class="p-2 border text-left">Pazarlama Hamlesi</th>
+          <!-- Month headers inserted by JS -->
         </tr>
-        <tr>
-          <!-- Week columns -->
+        <tr class="week-header">
+          <!-- Week headers inserted by JS -->
         </tr>
       </thead>
       <tbody id="schedule-body">
@@ -66,6 +56,7 @@
     </table>
   </div>
 
+  <!-- PapaParse -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
   <script>
     window.onload = function() {
@@ -74,54 +65,41 @@
       const months = ['Ağustos','Eylül','Ekim','Kasım','Aralık','Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz'];
       const weeksPerMonth = 4;
       const totalWeeks = months.length * weeksPerMonth;
-      const thead = document.querySelector('thead');
-      const [rowMonth, rowWeek] = thead.rows;
+      const monthRow = document.querySelector('tr.month-header');
+      const weekRow = document.querySelector('tr.week-header');
       const tbody = document.getElementById('schedule-body');
       const filtersEl = document.getElementById('persona-filters');
       let records = [];
 
-      // Build month header
-      months.forEach(month => {
+      // Build headers
+      months.forEach(m => {
         const th = document.createElement('th');
-        th.textContent = month;
+        th.textContent = m;
         th.colSpan = weeksPerMonth;
         th.className = 'p-2 border text-center';
-        rowMonth.appendChild(th);
+        monthRow.appendChild(th);
       });
-      // Build week header
       for (let i = 0; i < months.length; i++) {
         for (let w = 1; w <= weeksPerMonth; w++) {
           const th = document.createElement('th');
-          th.textContent = `${w}. Hafta`;
+          th.textContent = w + '. Hafta';
           th.className = 'p-2 border text-center';
-          rowWeek.appendChild(th);
+          weekRow.appendChild(th);
         }
       }
 
-      function normalizeKey(str) {
-        return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-      }
+      function normalizeKey(str) { return str.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
 
-      // Fetch & parse CSV
       fetch(proxyUrl)
         .then(res => res.ok ? res.text() : Promise.reject(new Error(res.statusText)))
         .then(csvText => {
           const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
           records = parsed.data.map(item => {
-            const rawList = item.personas ? item.personas.split(',').map(p => p.trim()) : [];
-            const personas = rawList.map(p => normalizeKey(p));
-            let mIdx = parseInt(item.startMonth, 10);
-            if (isNaN(mIdx) || mIdx < 0 || mIdx >= months.length) mIdx = months.indexOf(item.startMonth);
-            return {
-              initiative: item.initiative,
-              category: item.category || '',
-              color: item.color || 'bg-gray-400',
-              rawPersonas: rawList,
-              personas,
-              monthIdx: mIdx,
-              startWeek: Number(item.startWeek),
-              duration: Number(item.duration)
-            };
+            const rawList = item.personas ? item.personas.split(',').map(p=>p.trim()) : [];
+            const personas = rawList.map(p=>normalizeKey(p));
+            let mIdx = parseInt(item.startMonth,10);
+            if (isNaN(mIdx) || mIdx<0||mIdx>=months.length) mIdx = months.indexOf(item.startMonth);
+            return { initiative: item.initiative, category: item.category||'', color: item.color||'bg-gray-400', rawPersonas: rawList, personas, monthIdx: mIdx, startWeek: Number(item.startWeek), duration: Number(item.duration) };
           });
           render('all');
         })
@@ -132,57 +110,25 @@
 
       function render(filter) {
         tbody.innerHTML = '';
-        records.filter(r => filter === 'all' || r.personas.includes(filter)).forEach(r => {
+        records.filter(r => filter==='all'||r.personas.includes(filter)).forEach(r => {
           const tr = document.createElement('tr');
-          // Initiative cell
-          const tdInit = document.createElement('td');
-          tdInit.className = 'p-2 border relative';
-          tdInit.innerHTML = `
-            <div class="font-semibold text-gray-800 mb-2">${r.initiative}</div>
-            <div class="mt-1 flex flex-wrap mb-4">
-              ${r.rawPersonas.map(p => {
-                const key = normalizeKey(p);
-                const colors = {
-                  veli: ['bg-blue-100','text-blue-800'],
-                  ogrenci: ['bg-green-100','text-green-800'],
-                  ogretmen: ['bg-yellow-100','text-yellow-800'],
-                  kurum: ['bg-red-100','text-red-800']
-                }[key] || ['bg-gray-200','text-gray-700'];
-                return `<span class="persona-tag ${colors[0]} ${colors[1]}">${p}</span>`;
-              }).join('')}
-            </div>
-            <div class="absolute bottom-1 right-1 px-2 py-1 text-xs font-medium rounded bg-yellow-100 text-yellow-800">${r.category}</div>
-          `;
+          const tdInit = document.createElement('td'); tdInit.className = 'p-2 border relative';
+          tdInit.innerHTML = `<div class="font-semibold text-gray-800 mb-2">${r.initiative}</div><div class="mt-1 flex flex-wrap mb-4">${r.rawPersonas.map(p=>{const key=normalizeKey(p),c={veli:['bg-blue-100','text-blue-800'],ogrenci:['bg-green-100','text-green-800'],ogretmen:['bg-yellow-100','text-yellow-800'],kurum:['bg-red-100','text-red-800']}[key]||['bg-gray-200','text-gray-700'];return `<span class="persona-tag ${c[0]} ${c[1]}">${p}</span>`}).join('')}</div><div class="absolute bottom-1 right-1 px-2 py-1 text-xs font-medium rounded bg-yellow-100 text-yellow-800">${r.category}</div>`;
           tr.appendChild(tdInit);
-
-          let idx = 0;
-          while (idx < totalWeeks) {
-            if (idx === r.monthIdx * weeksPerMonth + (r.startWeek - 1)) {
-              const tdBar = document.createElement('td');
-              tdBar.colSpan = r.duration;
-              tdBar.className = 'p-2 border relative';
-              const divBar = document.createElement('div');
-              const textColor = /yellow/.test(r.color) ? 'text-gray-900' : 'text-white';
-              divBar.className = `absolute inset-1 flex items-center justify-center ${r.color} ${textColor}`;
-              divBar.textContent = r.initiative;
-              tdBar.appendChild(divBar);
-              tr.appendChild(tdBar);
-              idx += r.duration;
-            } else {
-              const tdEmpty = document.createElement('td');
-              tdEmpty.className = 'p-2 border';
-              tr.appendChild(tdEmpty);
-              idx++;
-            }
+          let idx=0;
+          while(idx<totalWeeks){
+            if(idx===r.monthIdx*weeksPerMonth+(r.startWeek-1)){
+              const tdBar=document.createElement('td'); tdBar.colSpan=r.duration; tdBar.className='p-2 border relative';
+              const divBar=document.createElement('div'); const textColor=/yellow/.test(r.color)?'text-gray-900':'text-white'; divBar.className=`absolute inset-1 flex items-center justify-center ${r.color} ${textColor}`; divBar.textContent=r.initiative; tdBar.appendChild(divBar); tr.appendChild(tdBar); idx+=r.duration;
+            } else { const tdEmpty=document.createElement('td'); tdEmpty.className='p-2 border'; tr.appendChild(tdEmpty); idx++; }
           }
           tbody.appendChild(tr);
         });
       }
 
-      // Single-select filters
       filtersEl.addEventListener('click', e => {
-        if (e.target.tagName === 'BUTTON') {
-          filtersEl.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+        if(e.target.tagName==='BUTTON'){
+          filtersEl.querySelectorAll('.filter-btn').forEach(btn=>btn.classList.remove('active'));
           e.target.classList.add('active');
           render(e.target.getAttribute('data-filter'));
         }

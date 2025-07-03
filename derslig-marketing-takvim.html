@@ -4,9 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Derslig 2025-26 Pazarlama Takvimi (Haftalık Görünüm)</title>
-  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Google Font -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     .filter-btn { background-color: #E5E7EB; color: #374151; }
@@ -43,7 +41,6 @@
     </div>
   </div>
 
-  <!-- CSV parsing library -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
   <script>
     window.onload = function() {
@@ -58,7 +55,7 @@
       const filtersEl = document.getElementById('persona-filters');
       let records = [];
 
-      // Build month and week headers
+      // Build headers
       const thInit = document.createElement('th');
       thInit.textContent = 'Pazarlama Hamlesi'; thInit.rowSpan = 2;
       thInit.className = 'p-2 border text-left'; thMonth.appendChild(thInit);
@@ -73,21 +70,32 @@
         }
       }
 
+      // Normalization helper
+      function normalizeKey(str) {
+        return str
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .toLowerCase();
+      }
+
       // Fetch & parse CSV
       fetch(proxyUrl)
         .then(res => res.ok ? res.text() : Promise.reject(new Error(res.statusText)))
         .then(csvText => {
           const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
           records = parsed.data.map(item => {
-            // Map personas to lowercase for filtering
-            const personas = item.personas ? item.personas.split(',').map(p => p.trim().toLowerCase()) : [];
-            // Determine month index: numeric or name
+            // Raw persona labels
+            const rawList = item.personas ? item.personas.split(',').map(p => p.trim()) : [];
+            // Normalized keys for filtering
+            const personas = rawList.map(p => normalizeKey(p));
+            // Determine month index
             let mIdx = parseInt(item.startMonth, 10);
             if (isNaN(mIdx) || mIdx < 0 || mIdx >= months.length) mIdx = months.indexOf(item.startMonth);
             return {
               initiative: item.initiative,
               category: item.category || '',
               color: item.color || 'bg-gray-400',
+              rawPersonas: rawList,
               personas: personas,
               monthIdx: mIdx,
               startWeek: Number(item.startWeek),
@@ -100,45 +108,52 @@
           tbody.innerHTML = `<tr><td colspan="${totalWeeks+1}" class="p-4 text-center text-red-500">CSV yüklenirken hata: ${err.message}</td></tr>`;
         });
 
-      // Render function
       function render(filter) {
         tbody.innerHTML = '';
-        records.filter(r => filter === 'all' || r.personas.includes(filter)).forEach(r => {
-          const tr = document.createElement('tr');
-          // Initiative & category badge
-          const tdInit = document.createElement('td'); tdInit.className = 'p-2 border relative';
-          tdInit.innerHTML = `
-            <div class="font-semibold text-gray-800 mb-2">${r.initiative}</div>
-            <div class="mt-1 flex flex-wrap mb-4">
-              ${r.personas.map(p => `<span class="persona-tag px-2 py-1 text-xs font-medium rounded-full ${
-                p==='veli'?'bg-blue-100 text-blue-800':p==='ogrenci'?'bg-green-100 text-green-800':p==='ogretmen'?'bg-yellow-100 text-yellow-800':'bg-red-100 text-red-800'
-              }">${p.charAt(0).toUpperCase()+p.slice(1)}</span>`).join('')}
-            </div>
-            <div class="absolute bottom-1 right-1 px-2 py-1 text-xs font-medium rounded bg-yellow-100 text-yellow-800">${r.category}</div>
-          `;
-          tr.appendChild(tdInit);
+        records
+          .filter(r => filter === 'all' || r.personas.includes(filter))
+          .forEach(r => {
+            const tr = document.createElement('tr');
+            const tdInit = document.createElement('td'); tdInit.className = 'p-2 border relative';
+            // Initiative, personas, category
+            tdInit.innerHTML = `
+              <div class="font-semibold text-gray-800 mb-2">${r.initiative}</div>
+              <div class="mt-1 flex flex-wrap mb-4">
+                ${r.rawPersonas.map(p => {
+                  const key = normalizeKey(p);
+                  const colors = {
+                    veli: ['bg-blue-100','text-blue-800'],
+                    ogrenci: ['bg-green-100','text-green-800'],
+                    ogretmen: ['bg-yellow-100','text-yellow-800'],
+                    kurum: ['bg-red-100','text-red-800']
+                  }[key] || ['bg-gray-200','text-gray-700'];
+                  return `<span class="persona-tag px-2 py-1 text-xs font-medium rounded-full ${colors[0]} ${colors[1]}">${p}</span>`;
+                }).join('')}
+              </div>
+              <div class="absolute bottom-1 right-1 px-2 py-1 text-xs font-medium rounded bg-yellow-100 text-yellow-800">${r.category}</div>
+            `;
+            tr.appendChild(tdInit);
 
-          // Weeks & bars
-          let idx = 0;
-          while (idx < totalWeeks) {
-            if (idx === r.monthIdx * weeksPerMonth + (r.startWeek - 1)) {
-              const tdBar = document.createElement('td'); tdBar.colSpan = r.duration; tdBar.className = 'p-2 border relative';
-              const divBar = document.createElement('div');
-              const textColor = /yellow/.test(r.color) ? 'text-gray-900' : 'text-white';
-              divBar.className = `absolute inset-1 flex items-center justify-center ${r.color} ${textColor}`;
-              divBar.textContent = r.initiative;
-              tdBar.appendChild(divBar);
-              tr.appendChild(tdBar);
-              idx += r.duration;
-            } else {
-              const tdEmpty = document.createElement('td'); tdEmpty.className = 'p-2 border'; tr.appendChild(tdEmpty); idx++;
+            let idx = 0;
+            while (idx < totalWeeks) {
+              if (idx === r.monthIdx * weeksPerMonth + (r.startWeek - 1)) {
+                const tdBar = document.createElement('td'); tdBar.colSpan = r.duration; tdBar.className = 'p-2 border relative';
+                const divBar = document.createElement('div');
+                const textColor = /yellow/.test(r.color) ? 'text-gray-900' : 'text-white';
+                divBar.className = `absolute inset-1 flex items-center justify-center ${r.color} ${textColor}`;
+                divBar.textContent = r.initiative;
+                tdBar.appendChild(divBar);
+                tr.appendChild(tdBar);
+                idx += r.duration;
+              } else {
+                const tdEmpty = document.createElement('td'); tdEmpty.className = 'p-2 border'; tr.appendChild(tdEmpty); idx++;
+              }
             }
-          }
-          tbody.appendChild(tr);
-        });
+            tbody.appendChild(tr);
+          });
       }
 
-      // Filter buttons: only one active at a time
+      // Filter buttons: single selection
       filtersEl.addEventListener('click', e => {
         if (e.target.tagName === 'BUTTON') {
           filtersEl.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));

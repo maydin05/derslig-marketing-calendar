@@ -9,84 +9,18 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/papaparse/5.3.2/papaparse.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f1f5f9;
-        }
-        .gantt-container {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-        .gantt-grid {
-            display: grid;
-            min-width: 2220px;
-            grid-template-columns: 300px repeat(12, 160px);
-        }
-        .gantt-header,
-        .gantt-row {
-            display: contents;
-        }
-        .gantt-cell {
-            border-bottom: 1px solid #e2e8f0;
-            border-right: 1px solid #e2e8f0;
-            padding: 0.5rem;
-            white-space: nowrap;
-        }
-        .gantt-initiative-cell {
-            position: sticky;
-            left: 0;
-            background-color: #f8fafc;
-            z-index: 10;
-            border-right: 2px solid #cbd5e1;
-        }
-        .gantt-month-header {
-            position: sticky;
-            top: 0;
-            background-color: #f8fafc;
-            z-index: 20;
-            text-align: center;
-            font-weight: 600;
-        }
-        .gantt-bar {
-            position: absolute;
-            height: 28px;
-            border-radius: 0.25rem;
-            color: white;
-            font-size: 0.75rem;
-            line-height: 28px;
-            padding-left: 0.5rem;
-            padding-right: 0.5rem;
-            overflow: hidden;
-            white-space: nowrap;
-            text-overflow: ellipsis;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        .gantt-bar:hover {
-            transform: scale(1.02);
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-            z-index: 30;
-        }
-        .persona-tag {
-            display: inline-flex;
-            align-items: center;
-            padding: 2px 8px;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 500;
-            margin-right: 4px;
-            margin-bottom: 4px;
-        }
-        .filter-btn.active {
-            background-color: #2563eb;
-            color: white;
-        }
-        #loader {
-            text-align: center;
-            padding: 4rem;
-            font-size: 1.2rem;
-            color: #475569;
-        }
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
+        .gantt-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .gantt-grid { display: grid; min-width: 2220px; grid-template-columns: 300px repeat(12, 160px); }
+        .gantt-header, .gantt-row { display: contents; }
+        .gantt-cell { border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; padding: 0.5rem; white-space: nowrap; }
+        .gantt-initiative-cell { position: sticky; left: 0; background-color: #f8fafc; z-index: 10; border-right: 2px solid #cbd5e1; }
+        .gantt-month-header { position: sticky; top: 0; background-color: #f8fafc; z-index: 20; text-align: center; font-weight: 600; }
+        .gantt-bar { position: absolute; height: 28px; border-radius: 0.25rem; color: white; font-size: 0.75rem; line-height: 28px; padding: 0 0.5rem; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; cursor: pointer; transition: all 0.2s ease; }
+        .gantt-bar:hover { transform: scale(1.02); box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 30; }
+        .persona-tag { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; margin-right: 4px; margin-bottom: 4px; }
+        .filter-btn.active { background-color: #2563eb; color: white; }
+        #loader { text-align: center; padding: 4rem; font-size: 1.2rem; color: #475569; }
     </style>
 </head>
 <body class="p-4 sm:p-6 md:p-8">
@@ -129,82 +63,68 @@
     </div>
 
     <script>
-        const csvUrl = 'https://api.allorigins.win/raw?url=https://docs.google.com/spreadsheets/d/e/2PACX-1vTYD8dUx1q5XYhUTJ_D9ZAzyBX_oQZqsyM3N41HPBNwq9TwEtW5s2x9W5_fBRqnFFI2TpckMFL3qQkE/pub?gid=0&single=true&output=csv';
+        // Google Sheets CSV URL'inizi buraya yapıştırın ve encode edin
+        const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTYD8dUx1q5XYhUTJ_D9ZAzyBX_oQZqsyM3N41HPBNwq9TwEtW5s2x9W5_fBRqnFFI2TpckMFL3qQkE/pub?gid=0&single=true&output=csv';
+        const csvUrl   = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(sheetUrl);
 
         const personaDetails = {
-            veli: { text: 'Veli', color: 'bg-blue-100 text-blue-800' },
-            ogrenci: { text: 'Öğrenci', color: 'bg-green-100 text-green-800' },
+            veli:     { text: 'Veli',     color: 'bg-blue-100 text-blue-800' },
+            ogrenci:  { text: 'Öğrenci', color: 'bg-green-100 text-green-800' },
             ogretmen: { text: 'Öğretmen', color: 'bg-yellow-100 text-yellow-800' },
-            kurum: { text: 'Kurum', color: 'bg-red-100 text-red-800' }
+            kurum:    { text: 'Kurum',    color: 'bg-red-100 text-red-800' }
         };
 
         let marketingPlan = [];
         const ganttChart = document.getElementById('gantt-chart');
-        const loader = document.getElementById('loader');
-        const filterButtons = document.getElementById('persona-filters');
+        const loader     = document.getElementById('loader');
+        const filters    = document.getElementById('persona-filters');
 
         function renderChart(filter = 'all') {
-            const rows = ganttChart.querySelectorAll('.gantt-row');
-            rows.forEach(row => row.remove());
+            // Var olan satırları temizle
+            ganttChart.querySelectorAll('.gantt-row').forEach(r => r.remove());
 
-            if (!marketingPlan || marketingPlan.length === 0) return;
-
-            const filteredPlan = marketingPlan.filter(item => {
-                if (filter === 'all') return true;
-                return item.personas && item.personas.includes(filter);
-            });
-
-            filteredPlan.forEach(item => {
+            const data = marketingPlan.filter(item => filter === 'all' || item.personas.includes(filter));
+            data.forEach(item => {
                 const row = document.createElement('div');
                 row.className = 'gantt-row';
 
-                let personaTagsHTML = '';
-                if (item.personas) {
-                    item.personas.forEach(p => {
-                        const persona = personaDetails[p.trim()];
-                        if (persona) {
-                            personaTagsHTML += `<span class="persona-tag ${persona.color}">${persona.text}</span>`;
-                        }
-                    });
-                }
+                // Persona etiketleri
+                let tags = '';
+                item.personas.forEach(p => {
+                    const pd = personaDetails[p.trim()];
+                    if (pd) tags += `<span class="persona-tag ${pd.color}">${pd.text}</span>`;
+                });
 
                 row.innerHTML = `
                     <div class="gantt-cell gantt-initiative-cell flex flex-col justify-center">
                         <p class="font-semibold text-gray-800">${item.initiative || ''}</p>
-                        <div class="mt-1 flex flex-wrap">${personaTagsHTML}</div>
+                        <div class="mt-1 flex flex-wrap">${tags}</div>
                     </div>
                     ${Array(12).fill('<div class="gantt-cell relative"></div>').join('')}
                 `;
                 ganttChart.appendChild(row);
 
-                const startMonth = parseInt(item.startMonth, 10);
-                const duration = parseInt(item.duration, 10);
-
-                if (!isNaN(startMonth) && !isNaN(duration) && startMonth >= 0 && startMonth < 12) {
-                    const barContainer = row.children[startMonth + 1];
-                    if(barContainer){
-                        const bar = document.createElement('div');
-                        bar.className = `gantt-bar ${item.color || 'bg-gray-400'}`;
-                        bar.style.width = `calc(${duration * 100}% + ${duration - 1}px)`;
-                        bar.innerText = item.initiative || '';
-                        barContainer.appendChild(bar);
-                    }
+                // Çubukları ekle
+                const start = parseInt(item.startMonth, 10);
+                const dur   = parseInt(item.duration, 10);
+                if (!isNaN(start) && !isNaN(dur) && start >= 0 && start < 12) {
+                    const container = row.children[start + 1];
+                    const bar = document.createElement('div');
+                    bar.className = `gantt-bar ${item.color || 'bg-gray-400'}`;
+                    bar.style.width = `calc(${dur * 100}% + ${dur - 1}px)`;
+                    bar.innerText = item.initiative || '';
+                    container.appendChild(bar);
                 }
             });
             lucide.createIcons();
         }
 
         function init() {
-            if (csvUrl.includes('BURAYA_GOOGLE_SHEETS_CSV_URL_YAPIŞTIRILACAK')) {
-                loader.innerText = 'Lütfen kodu düzenleyip Google Sheets CSV URL\'nizi girin.';
-                return;
-            }
-
             Papa.parse(csvUrl, {
                 download: true,
                 header: true,
                 skipEmptyLines: true,
-                complete: function (results) {
+                complete: function(results) {
                     loader.style.display = 'none';
                     marketingPlan = results.data.map(item => ({
                         ...item,
@@ -212,25 +132,21 @@
                     }));
                     renderChart();
                 },
-                error: function (err) {
-                    loader.innerText = 'Veri yüklenirken bir hata oluştu. Lütfen CSV URL\'nizi ve formatını kontrol edin.';
-                    console.error("CSV Parse Error:", err);
+                error: function(err) {
+                    loader.innerText = 'Veri yüklenirken bir hata oluştu. Lütfen CSV URL ve formatını kontrol edin.';
+                    console.error(err);
                 }
             });
 
-            filterButtons.addEventListener('click', (e) => {
+            filters.addEventListener('click', e => {
                 if (e.target.tagName === 'BUTTON') {
-                    filterButtons.querySelector('.active').classList.remove('active');
+                    filters.querySelector('.active').classList.remove('active');
                     e.target.classList.add('active');
-                    const filterValue = e.target.getAttribute('data-filter');
-                    renderChart(filterValue);
+                    renderChart(e.target.getAttribute('data-filter'));
                 }
             });
         }
-        
-        // HATA DÜZELTİLDİ: Tüm mantık, sayfa tamamen yüklendikten sonra çalışan tek bir init() fonksiyonuna alındı.
         window.onload = init;
-
     </script>
 </body>
 </html>

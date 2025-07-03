@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Derslig 2025-26 Pazarlama Takvimi (Haftalık Görünüm)</title>
-  <!-- TailwindCSS -->
   <script src="https://cdn.tailwindcss.com" defer></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 </head>
@@ -28,13 +27,8 @@
     <div class="overflow-x-auto border rounded-lg">
       <table class="min-w-max border-collapse">
         <thead class="bg-white sticky top-0">
-          <tr>
-            <th class="p-2 border text-left" rowspan="2">Pazarlama Hamlesi</th>
-            <!-- Ay başlıkları -->
-          </tr>
-          <tr>
-            <!-- Hafta başlıkları -->
-          </tr>
+          <tr id="header-month"></tr>
+          <tr id="header-week"></tr>
         </thead>
         <tbody id="schedule-body">
           <tr><td colspan="100" class="p-4 text-center text-gray-500">Veriler yükleniyor...</td></tr>
@@ -43,50 +37,64 @@
     </div>
   </div>
 
-  <!-- PapaParse -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTYD8dUx1q5XYhUTJ_D9ZAzyBX_oQZqsyM3N41HPBNwq9TwEtW5s2x9W5_fBRqnFFI2TpckMFL3qQkE/pub?gid=0&single=true&output=csv'; // Publish edilmiş CSV linkiniz
+      const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTYD8dUx1q5XYhUTJ_D9ZAzyBX_oQZqsyM3N41HPBNwq9TwEtW5s2x9W5_fBRqnFFI2TpckMFL3qQkE/pub?gid=0&single=true&output=csv';
       const proxy = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(sheetUrl);
       const months = ['Ağustos','Eylül','Ekim','Kasım','Aralık','Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz'];
       const weeksPerMonth = 4;
       const totalWeeks = months.length * weeksPerMonth;
-      const table = document.querySelector('table');
-      const thead = table.querySelector('thead');
-      const [rowMonth, rowWeek] = thead.rows;
+      const thMonth = document.getElementById('header-month');
+      const thWeek = document.getElementById('header-week');
       const tbody = document.getElementById('schedule-body');
       const filtersEl = document.getElementById('persona-filters');
       let records = [];
 
-      // Build header cells
-      months.forEach(month => {
+      // Build headers
+      // Month row
+      const thInit = document.createElement('th');
+      thInit.textContent = 'Pazarlama Hamlesi';
+      thInit.rowSpan = 2;
+      thInit.className = 'p-2 border text-left';
+      thMonth.appendChild(thInit);
+      months.forEach(m => {
         const th = document.createElement('th');
-        th.className = 'p-2 border text-center';
-        th.textContent = month;
+        th.textContent = m;
         th.colSpan = weeksPerMonth;
-        rowMonth.appendChild(th);
-        for (let w = 1; w <= weeksPerMonth; w++) {
-          const thW = document.createElement('th');
-          thW.className = 'p-2 border text-center';
-          thW.textContent = w + '. Hafta';
-          rowWeek.appendChild(thW);
-        }
+        th.className = 'p-2 border text-center';
+        thMonth.appendChild(th);
       });
+      // Week row
+      for(let i = 0; i < months.length; i++){
+        for(let w = 1; w <= weeksPerMonth; w++){
+          const th = document.createElement('th');
+          th.textContent = w + '. Hafta';
+          th.className = 'p-2 border text-center';
+          thWeek.appendChild(th);
+        }
+      }
 
-      // Fetch CSV and parse
+      // Parse CSV
       fetch(proxy)
-        .then(res => { if (!res.ok) throw new Error(res.status + ' ' + res.statusText); return res.text(); })
+        .then(res => res.ok ? res.text() : Promise.reject(new Error(res.statusText)))
         .then(csvText => {
           const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
-          records = parsed.data.map(item => ({
-            initiative: item.initiative,
-            color: item.color || 'bg-gray-400',
-            personas: item.personas ? item.personas.split(',').map(p => p.trim()) : [],
-            monthIdx: months.indexOf(item.startMonth),
-            startWeek: Number(item.startWeek),
-            duration: Number(item.duration)
-          }));
+          records = parsed.data.map(item => {
+            // determine month index: numeric or string
+            let mIdx = parseInt(item.startMonth,10);
+            if(isNaN(mIdx) || mIdx < 0 || mIdx >= months.length) {
+              mIdx = months.indexOf(item.startMonth);
+            }
+            return {
+              initiative: item.initiative,
+              color: item.color || 'bg-gray-400',
+              personas: item.personas ? item.personas.split(',').map(p => p.trim()) : [],
+              monthIdx: mIdx,
+              startWeek: Number(item.startWeek),
+              duration: Number(item.duration)
+            };
+          });
           render('all');
         })
         .catch(err => {
@@ -94,26 +102,26 @@
           console.error('CSV Error:', err);
         });
 
-      function render(filter) {
+      function render(filter){
         tbody.innerHTML = '';
         records.filter(r => filter === 'all' || r.personas.includes(filter)).forEach(r => {
           const tr = document.createElement('tr');
           // Initiative cell
           const tdInit = document.createElement('td');
           tdInit.className = 'p-2 border';
-          tdInit.innerHTML = `<div class=\"font-semibold text-gray-800\">${r.initiative}</div><div class=\"mt-1 flex flex-wrap\">${r.personas.map(p => `<span class=\"persona-tag px-2 py-1 text-xs font-medium rounded-full ${
-            p==='veli'?'bg-blue-100 text-blue-800':p==='ogrenci'?'bg-green-100 text-green-800':p==='ogretmen'?'bg-yellow-100 text-yellow-800':'bg-red-100 text-red-800'
-          }\">${p[0].toUpperCase()+p.slice(1)}</span>`).join('')}</div>`;
+          tdInit.innerHTML = `<div class="font-semibold text-gray-800">${r.initiative}</div><div class="mt-1 flex flex-wrap">${r.personas.map(p => `<span class="persona-tag px-2 py-1 text-xs font-medium rounded-full ${
+            p === 'veli' ? 'bg-blue-100 text-blue-800' : p === 'ogrenci' ? 'bg-green-100 text-green-800' : p === 'ogretmen' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
+          }">${p[0].toUpperCase()+p.slice(1)}</span>`).join('')}</div>`;
           tr.appendChild(tdInit);
-          // Week cells
+
           let idx = 0;
-          while (idx < totalWeeks) {
-            if (idx === r.monthIdx * weeksPerMonth + (r.startWeek-1)) {
+          while(idx < totalWeeks){
+            if(idx === (r.monthIdx * weeksPerMonth + (r.startWeek - 1))){
               const tdBar = document.createElement('td');
-              tdBar.className = 'p-2 border relative';
               tdBar.colSpan = r.duration;
+              tdBar.className = 'p-2 border relative';
               const divBar = document.createElement('div');
-              divBar.className = `absolute inset-1 ${r.color}`;
+              divBar.className = `absolute inset-y-1 inset-x-1 ${r.color}`;
               divBar.textContent = r.initiative;
               tdBar.appendChild(divBar);
               tr.appendChild(tdBar);
@@ -129,9 +137,8 @@
         });
       }
 
-      // Filter buttons
       filtersEl.addEventListener('click', e => {
-        if (e.target.tagName === 'BUTTON') {
+        if(e.target.tagName === 'BUTTON'){
           filtersEl.querySelector('.active').classList.replace('bg-blue-500','bg-gray-200');
           filtersEl.querySelector('.active').classList.replace('text-white','text-gray-700');
           e.target.classList.replace('bg-gray-200','bg-blue-500');

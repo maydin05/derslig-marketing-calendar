@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Derslig 2025-26 Pazarlama Takvimi (Haftalık Görünüm)</title>
-  <!-- TailwindCSS -->
-  <script src="https://cdn.tailwindcss.com" defer></script>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     .filter-btn { background-color: #E5E7EB; color: #374151; }
@@ -13,31 +13,38 @@
   </style>
 </head>
 <body class="p-4 bg-gray-100 font-inter">
-  <!-- Sticky Header -->
-  <div class="max-w-full mx-auto bg-white rounded-xl shadow-lg p-6 sticky top-0 z-50">
-    <header>
-      <h1 class="text-2xl font-bold text-gray-800 mb-1">Derslig 2025-26 Pazarlama Takvimi (Haftalık Görünüm)</h1>
-      <p class="text-gray-600 mb-4">Her ay 4 haftadan oluşan zaman çizelgesi.</p>
-      <div class="flex flex-wrap gap-2 items-center">
-        <span class="font-semibold text-gray-700 mr-2">Filtrele:</span>
-        <div id="persona-filters" class="flex gap-2">
-          <button data-filter="all" class="filter-btn px-3 py-1 text-sm rounded-full active">Tümü</button>
-          <button data-filter="veli" class="filter-btn px-3 py-1 text-sm rounded-full">Veli</button>
-          <button data-filter="ogrenci" class="filter-btn px-3 py-1 text-sm rounded-full">Öğrenci</button>
-          <button data-filter="ogretmen" class="filter-btn px-3 py-1 text-sm rounded-full">Öğretmen</button>
-          <button data-filter="kurum" class="filter-btn px-3 py-1 text-sm rounded-full">Kurum</button>
+  <!-- Sticky Header (Title + Filters + Table Header) -->
+  <div class="sticky top-0 z-50 bg-white">
+    <div class="max-w-full mx-auto rounded-xl shadow-lg p-6">
+      <header>
+        <h1 class="text-2xl font-bold text-gray-800 mb-1">Derslig 2025-26 Pazarlama Takvimi (Haftalık Görünüm)</h1>
+        <p class="text-gray-600 mb-4">Her ay 4 haftadan oluşan zaman çizelgesi.</p>
+        <div class="flex flex-wrap gap-2 items-center mb-4">
+          <span class="font-semibold text-gray-700 mr-2">Filtrele:</span>
+          <div id="persona-filters" class="flex gap-2">
+            <button data-filter="all" class="filter-btn px-3 py-1 text-sm rounded-full active">Tümü</button>
+            <button data-filter="veli" class="filter-btn px-3 py-1 text-sm rounded-full">Veli</button>
+            <button data-filter="ogrenci" class="filter-btn px-3 py-1 text-sm rounded-full">Öğrenci</button>
+            <button data-filter="ogretmen" class="filter-btn px-3 py-1 text-sm rounded-full">Öğretmen</button>
+            <button data-filter="kurum" class="filter-btn px-3 py-1 text-sm rounded-full">Kurum</button>
+          </div>
         </div>
+      </header>
+      <!-- Table Header -->
+      <div class="overflow-x-auto">
+        <table class="min-w-max border-collapse w-full">
+          <thead class="bg-white sticky top-[5.5rem] z-40">
+            <tr id="header-month"></tr>
+            <tr id="header-week"></tr>
+          </thead>
+        </table>
       </div>
-    </header>
+    </div>
   </div>
 
-  <!-- Schedule Table -->
-  <div class="overflow-x-auto border rounded-lg mt-4">
-    <table class="min-w-max border-collapse">
-      <thead class="bg-white z-40" style="position: sticky; top: 6rem;">
-        <tr id="header-month"></tr>
-        <tr id="header-week"></tr>
-      </thead>
+  <!-- Scrollable Table Body -->
+  <div class="overflow-auto max-h-[calc(100vh-200px)] border rounded-lg mt-4 bg-white">
+    <table class="min-w-max border-collapse w-full">
       <tbody id="schedule-body">
         <tr><td colspan="100" class="p-4 text-center text-gray-500">Veriler yükleniyor...</td></tr>
       </tbody>
@@ -59,7 +66,7 @@
       const filtersEl = document.getElementById('persona-filters');
       let records = [];
 
-      // Build headers
+      // Build table header
       const thInit = document.createElement('th');
       thInit.textContent = 'Pazarlama Hamlesi';
       thInit.rowSpan = 2;
@@ -81,7 +88,6 @@
         }
       }
 
-      // Normalize helper for personas
       function normalizeKey(str) {
         return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
       }
@@ -114,60 +120,53 @@
           console.error(err);
         });
 
-      // Render rows
       function render(filter) {
         tbody.innerHTML = '';
-        records
-          .filter(r => filter === 'all' || r.personas.includes(filter))
-          .forEach(r => {
-            const tr = document.createElement('tr');
-            // Initiative cell
-            const tdInit = document.createElement('td');
-            tdInit.className = 'p-2 border relative';
-            tdInit.innerHTML = `
-              <div class="font-semibold text-gray-800 mb-2">${r.initiative}</div>
-              <div class="mt-1 flex flex-wrap mb-4">
-                ${r.rawPersonas.map(p => {
-                  const key = normalizeKey(p);
-                  const colors = {
-                    veli: ['bg-blue-100','text-blue-800'],
-                    ogrenci: ['bg-green-100','text-green-800'],
-                    ogretmen: ['bg-yellow-100','text-yellow-800'],
-                    kurum: ['bg-red-100','text-red-800']
-                  }[key] || ['bg-gray-200','text-gray-700'];
-                  return `<span class="persona-tag px-2 py-1 text-xs font-medium rounded-full ${colors[0]} ${colors[1]}">${p}</span>`;
-                }).join('')}
-              </div>
-              <div class="absolute bottom-1 right-1 px-2 py-1 text-xs font-medium rounded bg-yellow-100 text-yellow-800">${r.category}</div>
-            `;
-            tr.appendChild(tdInit);
+        records.filter(r => filter === 'all' || r.personas.includes(filter)).forEach(r => {
+          const tr = document.createElement('tr');
+          const tdInit = document.createElement('td');
+          tdInit.className = 'p-2 border relative';
+          tdInit.innerHTML = `
+            <div class="font-semibold text-gray-800 mb-2">${r.initiative}</div>
+            <div class="mt-1 flex flex-wrap mb-4">${r.rawPersonas.map(p => {
+              const key = normalizeKey(p);
+              const colors = {
+                veli: ['bg-blue-100','text-blue-800'],
+                ogrenci: ['bg-green-100','text-green-800'],
+                ogretmen: ['bg-yellow-100','text-yellow-800'],
+                kurum: ['bg-red-100','text-red-800']
+              }[key] || ['bg-gray-200','text-gray-700'];
+              return `<span class="persona-tag px-2 py-1 text-xs font-medium rounded-full ${colors[0]} ${colors[1]}">${p}</span>`;
+            }).join('')}</div>
+            <div class="absolute bottom-1 right-1 px-2 py-1 text-xs font-medium rounded bg-yellow-100 text-yellow-800">${r.category}</div>
+          `;
+          tr.appendChild(tdInit);
 
-            // Weeks & bars
-            let idx = 0;
-            while (idx < totalWeeks) {
-              if (idx === r.monthIdx * weeksPerMonth + (r.startWeek - 1)) {
-                const tdBar = document.createElement('td');
-                tdBar.colSpan = r.duration;
-                tdBar.className = 'p-2 border relative';
-                const divBar = document.createElement('div');
-                const textColor = /yellow/.test(r.color) ? 'text-gray-900' : 'text-white';
-                divBar.className = `absolute inset-1 flex items-center justify-center ${r.color} ${textColor}`;
-                divBar.textContent = r.initiative;
-                tdBar.appendChild(divBar);
-                tr.appendChild(tdBar);
-                idx += r.duration;
-              } else {
-                const tdEmpty = document.createElement('td');
-                tdEmpty.className = 'p-2 border';
-                tr.appendChild(tdEmpty);
-                idx++;
-              }
+          let idx = 0;
+          while (idx < totalWeeks) {
+            if (idx === r.monthIdx * weeksPerMonth + (r.startWeek - 1)) {
+              const tdBar = document.createElement('td');
+              tdBar.colSpan = r.duration;
+              tdBar.className = 'p-2 border relative';
+              const divBar = document.createElement('div');
+              const textColor = /yellow/.test(r.color) ? 'text-gray-900' : 'text-white';
+              divBar.className = `absolute inset-1 flex items-center justify-center ${r.color} ${textColor}`;
+              divBar.textContent = r.initiative;
+              tdBar.appendChild(divBar);
+              tr.appendChild(tdBar);
+              idx += r.duration;
+            } else {
+              const tdEmpty = document.createElement('td');
+              tdEmpty.className = 'p-2 border';
+              tr.appendChild(tdEmpty);
+              idx++;
             }
-            tbody.appendChild(tr);
-          });
+          }
+          tbody.appendChild(tr);
+        });
       }
 
-      // Filter buttons: single selection
+      // Single-select filters
       filtersEl.addEventListener('click', e => {
         if (e.target.tagName === 'BUTTON') {
           filtersEl.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
@@ -175,7 +174,7 @@
           render(e.target.getAttribute('data-filter'));
         }
       });
-    }; // end window.onload
+    };
   </script>
 </body>
 </html>

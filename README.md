@@ -1,2 +1,2 @@
 # derslig-marketing-calendar
-Derslig marketing takvimi
+Derslig Pazarlama Takvimi Arayüzü

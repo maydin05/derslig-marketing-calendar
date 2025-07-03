@@ -3,34 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Derslig 2025-26 Pazarlama Takvimi (Haftalık)</title>
-  <!-- Tailwind CSS -->
+  <title>Derslig 2025-26 Pazarlama Takvimi (Haftalık Görünüm)</title>
+  <!-- TailwindCSS -->
   <script src="https://cdn.tailwindcss.com" defer></script>
-  <!-- Google Font -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <style>
-    body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
-    .gantt-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    .gantt-grid { display: grid; }
-    .gantt-header, .gantt-row { display: contents; }
-    .gantt-cell { border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; padding: .5rem; white-space: nowrap; }
-    .gantt-initiative-cell { position: sticky; left: 0; background: #f8fafc; z-index: 10; border-right: 2px solid #cbd5e1; }
-    .gantt-week-header { position: sticky; top: 0; background: #f8fafc; z-index: 20; text-align: center; font-weight: 600; }
-    .gantt-bar { position: absolute; height: 24px; border-radius: .25rem; color: white; font-size: .75rem; line-height: 24px; padding: 0 .5rem; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; cursor: pointer; }
-    .persona-tag { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 9999px; font-size: .75rem; font-weight: 500; margin: 0 4px 4px 0; }
-    .filter-btn.active { background-color: #2563eb; color: #fff; }
-    #loader { text-align: center; padding: 4rem; font-size: 1.2rem; color: #475569; }
-  </style>
 </head>
-<body class="p-4 sm:p-6 md:p-8">
+<body class="p-4 bg-gray-100 font-inter">
   <div class="max-w-full mx-auto bg-white rounded-xl shadow-lg p-6">
     <header class="mb-6">
       <h1 class="text-2xl font-bold text-gray-800">Derslig 2025-26 Pazarlama Takvimi (Haftalık Görünüm)</h1>
       <p class="mt-1 text-gray-600">Her ay 4 haftadan oluşan zaman çizelgesi.</p>
       <div class="mt-4 flex flex-wrap gap-2 items-center">
         <span class="font-semibold text-gray-700 mr-2">Filtrele:</span>
-        <div id="persona-filters">
-          <button data-filter="all" class="filter-btn active px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded-full">Tümü</button>
+        <div id="persona-filters" class="flex gap-2">
+          <button data-filter="all" class="filter-btn active px-3 py-1 text-sm bg-blue-500 text-white rounded-full">Tümü</button>
           <button data-filter="veli" class="filter-btn px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded-full">Veli</button>
           <button data-filter="ogrenci" class="filter-btn px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded-full">Öğrenci</button>
           <button data-filter="ogretmen" class="filter-btn px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded-full">Öğretmen</button>
@@ -38,97 +24,118 @@
         </div>
       </div>
     </header>
-    <div class="gantt-container">
-      <div id="gantt-chart" class="gantt-grid"></div>
-      <div id="loader">Veriler Yükleniyor...</div>
+
+    <div class="overflow-x-auto border rounded-lg">
+      <table class="min-w-max border-collapse">
+        <thead class="bg-white sticky top-0">
+          <tr>
+            <th class="p-2 border text-left" rowspan="2">Pazarlama Hamlesi</th>
+            <!-- Ay başlıkları -->
+          </tr>
+          <tr>
+            <!-- Hafta başlıkları -->
+          </tr>
+        </thead>
+        <tbody id="schedule-body">
+          <tr><td colspan="100" class="p-4 text-center text-gray-500">Veriler yükleniyor...</td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
 
-  <!-- CSV parsing library -->
+  <!-- PapaParse -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTYD8dUx1q5XYhUTJ_D9ZAzyBX_oQZqsyM3N41HPBNwq9TwEtW5s2x9W5_fBRqnFFI2TpckMFL3qQkE/pub?gid=0&single=true&output=csv';
+      const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTYD8dUx1q5XYhUTJ_D9ZAzyBX_oQZqsyM3N41HPBNwq9TwEtW5s2x9W5_fBRqnFFI2TpckMFL3qQkE/pub?gid=0&single=true&output=csv'; // Publish edilmiş CSV linkiniz
       const proxy = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(sheetUrl);
-      const loader = document.getElementById('loader');
-      const gantt = document.getElementById('gantt-chart');
-      const filtersEl = document.getElementById('persona-filters');
       const months = ['Ağustos','Eylül','Ekim','Kasım','Aralık','Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz'];
       const weeksPerMonth = 4;
-      const cellWidth = 120; // px
-      let data = [];
-
-      // Grid columns: first 300px for initiative then weeks
       const totalWeeks = months.length * weeksPerMonth;
-      gantt.style.gridTemplateColumns = `300px repeat(${totalWeeks}, ${cellWidth}px)`;
+      const table = document.querySelector('table');
+      const thead = table.querySelector('thead');
+      const [rowMonth, rowWeek] = thead.rows;
+      const tbody = document.getElementById('schedule-body');
+      const filtersEl = document.getElementById('persona-filters');
+      let records = [];
 
-      // Build header
-      let headerHtml = `<div class="gantt-header">`;
-      headerHtml += `<div class="gantt-cell gantt-week-header gantt-initiative-cell">Pazarlama Hamlesi</div>`;
-      months.forEach(m => {
-        for(let w=1; w<=weeksPerMonth; w++){
-          headerHtml += `<div class="gantt-cell gantt-week-header">${m} H${w}</div>`;
+      // Build header cells
+      months.forEach(month => {
+        const th = document.createElement('th');
+        th.className = 'p-2 border text-center';
+        th.textContent = month;
+        th.colSpan = weeksPerMonth;
+        rowMonth.appendChild(th);
+        for (let w = 1; w <= weeksPerMonth; w++) {
+          const thW = document.createElement('th');
+          thW.className = 'p-2 border text-center';
+          thW.textContent = w + '. Hafta';
+          rowWeek.appendChild(thW);
         }
       });
-      headerHtml += `</div>`;
-      gantt.innerHTML = headerHtml;
 
-      // Fetch and parse CSV
-      Papa.parse(proxy, {
-        download: true, header: true, skipEmptyLines: true,
-        complete: res => {
-          loader.style.display = 'none';
-          data = res.data.map(item => ({
+      // Fetch CSV and parse
+      fetch(proxy)
+        .then(res => { if (!res.ok) throw new Error(res.status + ' ' + res.statusText); return res.text(); })
+        .then(csvText => {
+          const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+          records = parsed.data.map(item => ({
             initiative: item.initiative,
-            personas: item.personas ? item.personas.split(',').map(x=>x.trim()) : [],
             color: item.color || 'bg-gray-400',
+            personas: item.personas ? item.personas.split(',').map(p => p.trim()) : [],
             monthIdx: months.indexOf(item.startMonth),
             startWeek: Number(item.startWeek),
             duration: Number(item.duration)
           }));
           render('all');
-        }, error: err => {
-          loader.textContent = 'CSV yüklenirken hata: '+err;
-          console.error(err);
-        }
-      });
+        })
+        .catch(err => {
+          tbody.innerHTML = `<tr><td colspan="${totalWeeks+1}" class="p-4 text-center text-red-500">CSV yüklenirken hata: ${err.message}</td></tr>`;
+          console.error('CSV Error:', err);
+        });
 
-      function render(filter){
-        // Remove existing rows
-        document.querySelectorAll('.gantt-row').forEach(r=>r.remove());
-        // Filter data
-        const arr = data.filter(d=> filter==='all' || d.personas.includes(filter));
-        arr.forEach(d=>{
-          const row = document.createElement('div'); row.className='gantt-row';
-          // initiative and tags
-          let tags = '';
-          d.personas.forEach(p=>{
-            const map = { veli:['Veli','bg-blue-100 text-blue-800'], ogrenci:['Öğrenci','bg-green-100 text-green-800'], ogretmen:['Öğretmen','bg-yellow-100 text-yellow-800'], kurum:['Kurum','bg-red-100 text-red-800'] }[p];
-            if(map) tags+=`<span class="persona-tag ${map[1]}">${map[0]}</span>`;
-          });
-          let cells = `<div class="gantt-cell gantt-initiative-cell flex flex-col justify-center"><p class="font-semibold text-gray-800">${d.initiative}</p><div class="mt-1 flex flex-wrap">${tags}</div></div>`;
-          // empty week cells
-          for(let i=0;i<totalWeeks;i++) cells+=`<div class="gantt-cell relative"></div>`;
-          row.innerHTML=cells;
-          gantt.appendChild(row);
-          // draw bar
-          if(d.monthIdx>=0 && d.startWeek>0){
-            const pos = d.monthIdx*weeksPerMonth + (d.startWeek-1);
-            const container = row.children[pos+1];
-            const bar = document.createElement('div');
-            bar.className=`gantt-bar ${d.color}`;
-            bar.style.width = `${d.duration*cellWidth - 8}px`;
-            bar.style.left = '0';
-            bar.textContent = d.initiative;
-            container.appendChild(bar);
+      function render(filter) {
+        tbody.innerHTML = '';
+        records.filter(r => filter === 'all' || r.personas.includes(filter)).forEach(r => {
+          const tr = document.createElement('tr');
+          // Initiative cell
+          const tdInit = document.createElement('td');
+          tdInit.className = 'p-2 border';
+          tdInit.innerHTML = `<div class=\"font-semibold text-gray-800\">${r.initiative}</div><div class=\"mt-1 flex flex-wrap\">${r.personas.map(p => `<span class=\"persona-tag px-2 py-1 text-xs font-medium rounded-full ${
+            p==='veli'?'bg-blue-100 text-blue-800':p==='ogrenci'?'bg-green-100 text-green-800':p==='ogretmen'?'bg-yellow-100 text-yellow-800':'bg-red-100 text-red-800'
+          }\">${p[0].toUpperCase()+p.slice(1)}</span>`).join('')}</div>`;
+          tr.appendChild(tdInit);
+          // Week cells
+          let idx = 0;
+          while (idx < totalWeeks) {
+            if (idx === r.monthIdx * weeksPerMonth + (r.startWeek-1)) {
+              const tdBar = document.createElement('td');
+              tdBar.className = 'p-2 border relative';
+              tdBar.colSpan = r.duration;
+              const divBar = document.createElement('div');
+              divBar.className = `absolute inset-1 ${r.color}`;
+              divBar.textContent = r.initiative;
+              tdBar.appendChild(divBar);
+              tr.appendChild(tdBar);
+              idx += r.duration;
+            } else {
+              const tdEmpty = document.createElement('td');
+              tdEmpty.className = 'p-2 border';
+              tr.appendChild(tdEmpty);
+              idx++;
+            }
           }
+          tbody.appendChild(tr);
         });
       }
 
-      filtersEl.addEventListener('click', e=>{
-        if(e.target.tagName==='BUTTON'){
-          filtersEl.querySelector('.active').classList.remove('active');
-          e.target.classList.add('active');
+      // Filter buttons
+      filtersEl.addEventListener('click', e => {
+        if (e.target.tagName === 'BUTTON') {
+          filtersEl.querySelector('.active').classList.replace('bg-blue-500','bg-gray-200');
+          filtersEl.querySelector('.active').classList.replace('text-white','text-gray-700');
+          e.target.classList.replace('bg-gray-200','bg-blue-500');
+          e.target.classList.replace('text-gray-700','text-white');
           render(e.target.getAttribute('data-filter'));
         }
       });

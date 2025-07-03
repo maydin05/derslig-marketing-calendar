@@ -7,7 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/papaparse/5.3.2/papaparse.min.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
         .gantt-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -16,8 +15,8 @@
         .gantt-cell { border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; padding: 0.5rem; white-space: nowrap; }
         .gantt-initiative-cell { position: sticky; left: 0; background-color: #f8fafc; z-index: 10; border-right: 2px solid #cbd5e1; }
         .gantt-month-header { position: sticky; top: 0; background-color: #f8fafc; z-index: 20; text-align: center; font-weight: 600; }
-        .gantt-bar { position: absolute; height: 28px; border-radius: 0.25rem; color: white; font-size: 0.75rem; line-height: 28px; padding: 0 0.5rem; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; cursor: pointer; transition: all 0.2s ease; }
-        .gantt-bar:hover { transform: scale(1.02); box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 30; }
+        .gantt-bar { position: absolute; height: 28px; border-radius: 0.25rem; color: white; font-size: 0.75rem; line-height: 28px; padding: 0 0.5rem; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; cursor: pointer; transition: transform .2s ease; }
+        .gantt-bar:hover { transform: scale(1.02); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
         .persona-tag { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; margin-right: 4px; margin-bottom: 4px; }
         .filter-btn.active { background-color: #2563eb; color: white; }
         #loader { text-align: center; padding: 4rem; font-size: 1.2rem; color: #475569; }
@@ -63,80 +62,73 @@
     </div>
 
     <script>
-        // Google Sheets CSV URL'inizi buraya yapıştırın ve encode edin
-        const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTYD8dUx1q5XYhUTJ_D9ZAzyBX_oQZqsyM3N41HPBNwq9TwEtW5s2x9W5_fBRqnFFI2TpckMFL3qQkE/pub?gid=0&single=true&output=csv';
-        const csvUrl   = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(sheetUrl);
+        document.addEventListener('DOMContentLoaded', () => {
+            const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTYD8dUx1q5XYhUTJ_D9ZAzyBX_oQZqsyM3N41HPBNwq9TwEtW5s2x9W5_fBRqnFFI2TpckMFL3qQkE/pub?gid=0&single=true&output=csv';
+            const csvUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(sheetUrl);
+            const loader = document.getElementById('loader');
+            const ganttChart = document.getElementById('gantt-chart');
+            const filters = document.getElementById('persona-filters');
+            let marketingPlan = [];
 
-        const personaDetails = {
-            veli:     { text: 'Veli',     color: 'bg-blue-100 text-blue-800' },
-            ogrenci:  { text: 'Öğrenci', color: 'bg-green-100 text-green-800' },
-            ogretmen: { text: 'Öğretmen', color: 'bg-yellow-100 text-yellow-800' },
-            kurum:    { text: 'Kurum',    color: 'bg-red-100 text-red-800' }
-        };
+            function renderChart(filter = 'all') {
+                ganttChart.querySelectorAll('.gantt-row').forEach(r => r.remove());
+                const data = marketingPlan.filter(item => filter === 'all' || item.personas.includes(filter));
+                data.forEach(item => {
+                    const row = document.createElement('div');
+                    row.className = 'gantt-row';
 
-        let marketingPlan = [];
-        const ganttChart = document.getElementById('gantt-chart');
-        const loader     = document.getElementById('loader');
-        const filters    = document.getElementById('persona-filters');
+                    let tags = '';
+                    item.personas.forEach(p => {
+                        const map = {
+                            veli: { text: 'Veli', color: 'bg-blue-100 text-blue-800' },
+                            ogrenci: { text: 'Öğrenci', color: 'bg-green-100 text-green-800' },
+                            ogretmen: { text: 'Öğretmen', color: 'bg-yellow-100 text-yellow-800' },
+                            kurum: { text: 'Kurum', color: 'bg-red-100 text-red-800' }
+                        }[p.trim()];
+                        if (map) tags += `<span class="persona-tag ${map.color}">${map.text}</span>`;
+                    });
 
-        function renderChart(filter = 'all') {
-            // Var olan satırları temizle
-            ganttChart.querySelectorAll('.gantt-row').forEach(r => r.remove());
+                    row.innerHTML = `
+                        <div class="gantt-cell gantt-initiative-cell flex flex-col justify-center">
+                            <p class="font-semibold text-gray-800">${item.initiative || ''}</p>
+                            <div class="mt-1 flex flex-wrap">${tags}</div>
+                        </div>
+                        ${Array(12).fill('<div class="gantt-cell relative"></div>').join('')}
+                    `;
+                    ganttChart.appendChild(row);
 
-            const data = marketingPlan.filter(item => filter === 'all' || item.personas.includes(filter));
-            data.forEach(item => {
-                const row = document.createElement('div');
-                row.className = 'gantt-row';
-
-                // Persona etiketleri
-                let tags = '';
-                item.personas.forEach(p => {
-                    const pd = personaDetails[p.trim()];
-                    if (pd) tags += `<span class="persona-tag ${pd.color}">${pd.text}</span>`;
+                    const start = parseInt(item.startMonth, 10);
+                    const dur = parseInt(item.duration, 10);
+                    if (!isNaN(start) && !isNaN(dur) && start >= 0 && start < 12) {
+                        const cell = row.children[start + 1];
+                        const bar = document.createElement('div');
+                        bar.className = `gantt-bar ${item.color || 'bg-gray-400'}`;
+                        bar.style.width = `calc(${dur * 100}% + ${dur - 1}px)`;
+                        bar.innerText = item.initiative || '';
+                        cell.appendChild(bar);
+                    }
                 });
+            }
 
-                row.innerHTML = `
-                    <div class="gantt-cell gantt-initiative-cell flex flex-col justify-center">
-                        <p class="font-semibold text-gray-800">${item.initiative || ''}</p>
-                        <div class="mt-1 flex flex-wrap">${tags}</div>
-                    </div>
-                    ${Array(12).fill('<div class="gantt-cell relative"></div>').join('')}
-                `;
-                ganttChart.appendChild(row);
-
-                // Çubukları ekle
-                const start = parseInt(item.startMonth, 10);
-                const dur   = parseInt(item.duration, 10);
-                if (!isNaN(start) && !isNaN(dur) && start >= 0 && start < 12) {
-                    const container = row.children[start + 1];
-                    const bar = document.createElement('div');
-                    bar.className = `gantt-bar ${item.color || 'bg-gray-400'}`;
-                    bar.style.width = `calc(${dur * 100}% + ${dur - 1}px)`;
-                    bar.innerText = item.initiative || '';
-                    container.appendChild(bar);
-                }
-            });
-            lucide.createIcons();
-        }
-
-        function init() {
-            Papa.parse(csvUrl, {
-                download: true,
-                header: true,
-                skipEmptyLines: true,
-                complete: function(results) {
+            fetch(csvUrl)
+                .then(res => {
+                    if (!res.ok) throw new Error(res.statusText);
+                    return res.text();
+                })
+                .then(csv => {
                     loader.style.display = 'none';
+                    const results = Papa.parse(csv, { header: true, skipEmptyLines: true });
+                    console.log('CSV parsed:', results);
                     marketingPlan = results.data.map(item => ({
                         ...item,
-                        personas: item.personas ? item.personas.split(',').map(p => p.trim()) : []
+                        personas: item.personas ? item.personas.split(',') : []
                     }));
                     renderChart();
-                },
-                error: function(err) {
-                    loader.innerText = 'Veri yüklenirken bir hata oluştu. Lütfen CSV URL ve formatını kontrol edin.';
-                    console.error(err);
-                }
-            });
+                })
+                .catch(err => {
+                    loader.innerText = 'CSV yüklenirken hata: ' + err;
+                    console.error('Fetch/PapaParse hata:', err);
+                });
 
             filters.addEventListener('click', e => {
                 if (e.target.tagName === 'BUTTON') {
@@ -145,8 +137,7 @@
                     renderChart(e.target.getAttribute('data-filter'));
                 }
             });
-        }
-        window.onload = init;
+        });
     </script>
 </body>
 </html>

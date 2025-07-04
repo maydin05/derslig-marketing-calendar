@@ -11,8 +11,12 @@
   <style>
     body { font-family: 'Montserrat', sans-serif; }
     /* İlk sütunu genişletme */
-    table th:first-child,
-    table td:first-child { min-width: 45rem; max-width: 45rem; }
+    /* İlk sütun genişliği sadece aylık header ve gövde için genişletilsin */
+thead tr.month-header th:first-child,
+tbody td:first-child {
+  min-width: 45rem;
+  max-width: 45rem;
+}
     /* Sticky filter bar */
     .filter-bar { position: sticky; top: 0; z-index: 50; background: white; }
     /* Scrollable table container */
